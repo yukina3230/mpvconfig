@@ -10,6 +10,11 @@ See the [Files section](https://mpv.io/manual/master/#files) in mpv's manual for
 
 # Updates
 
+### 2023-05-29
+
+- Updated some scripts
+
+
 ### 2023-05-27
 
 - Fixed subtitle positioning when OSC is shown on different resolutions
