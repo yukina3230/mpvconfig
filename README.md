@@ -8,6 +8,22 @@ Use `git clone https://github.com/zydezu/mpvconfig mpv` to download the reposito
 
 See the [Files section](https://mpv.io/manual/master/#files) in mpv's manual for more information.
 
+# Scripts and Associated Keybinds
+
+Please note that many of these scripts have been slightly modified from their initial repositories. Compare the scripts to find the modifications.
+
+| Script and description | Keybinds |
+| -------------- | --------------- |
+| [autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua) loads files in the directory to play through | None |
+| [autoloop](https://github.com/zc62/mpv-scripts/blob/master/autoloop.lua) loops files by default that are smaller than a set duration | None |
+| [modernx](https://github.com/zydezu/modernx) an modern OSC for mpv with many additional features | [Check repository](https://github.com/zydezu/modernx) |
+| [mpv_cut](https://github.com/b1scoito/mpv-cut) allows clipping a segment of a video | **c** - Mark start segment <br> **c (again)** - Clip the video <br> **Shift+c (instead of c again)** - Re-encode the clip with a small file size |
+| [qualitymenu](https://github.com/christoph-heinrich/mpv-quality-menu) allows you to select the quality of a YouTube video playing in mpv. | **f** - Open video quality menu <br> **Alt+f** - Open audio quality menu <br> **Arrows and Enter** - Navigate options and confirm a selection <br> **Esc** - Exit menu |
+| [screenshotfolder](https://github.com/zydezu/mpvconfig/blob/main/scripts/screenshotfolder.lua) saves screenshots to a designated `~desktop/mpv/.../` folder | **s** - Take a screenshot |
+| [SmartCopyPaste](https://github.com/Eisa01/mpv-scripts#smartcopypaste) allows various files and links to be pasted into mpv | **ctrl+v** - Paste |
+| [sponsorblock](https://github.com/po5/mpv_sponsorblock) skips sponsored segments of YouTube videos | **g** - Set segment boundaires <br> **Shift+g** - Submit a segment <br> **h** - Upvote last segment <br> **Shift+h** - Downvote last segment                      |
+| [thumbfast](https://github.com/po5/thumbfast) show thumbnails on the scrubbing bar | None |
+
 # Updates
 
 ### 2023-05-29
