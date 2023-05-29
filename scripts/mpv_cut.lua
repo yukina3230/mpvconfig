@@ -231,6 +231,8 @@ function mark_pos(is_web)
 
     log(msg.info, string.format("Marked %s as end position", to_timestamp(current_pos)), 3)
 
+    mp.set_property("keep-open", "always")
+
     local output_name = ""
     if string.len(settings.custom_output_path) > 0 then 
 	    output_name = string.format("%s\\%s cut.%s", settings.custom_output_path, vars.only_filename:gsub("%" .. string.format(".%s", settings.video_extension), ""), settings.video_extension)
@@ -301,8 +303,6 @@ mp.register_event("file-loaded", function()
     local only_filename = mp.get_property("filename")
     local path = mp.get_property("path")
     local _, filename = utils.split_path(path)
-
-    mp.set_property("keep-open", "always")
 
     -- Populate variables
     vars.path, vars.filename, vars.only_filename = path, filename, only_filename
