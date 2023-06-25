@@ -23,7 +23,6 @@ ignore_hidden=yes
 MAXENTRIES = 5000
 
 local msg = require 'mp.msg'
-local options = require 'mp.options'
 local utils = require 'mp.utils'
 
 o = {
@@ -33,7 +32,7 @@ o = {
     audio = true,
     ignore_hidden = true
 }
-options.read_options(o)
+(require 'mp.options').read_options(o)
 
 function Set (t)
     local set = {}

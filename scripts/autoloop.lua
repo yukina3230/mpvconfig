@@ -1,15 +1,11 @@
--- mpv issue 5222
 -- Automatically set loop-file=inf for duration <= given length. Default is 5s
 -- Use autoloop_duration=n in script-opts/autoloop.conf to set your preferred length
 -- Alternatively use script-opts=autoloop-autoloop_duration=n in mpv.conf (takes priority)
 -- Also disables the save-position-on-quit for this file, if it qualifies for looping.
 
-require 'mp.options'
-
 function getOption()
-    -- Use recommended way to get options
     local options = {autoloop_duration = 5}
-    read_options(options)
+    (require 'mp.options').read_options(options)    -- get options
     autoloop_duration = options.autoloop_duration
 end
 
