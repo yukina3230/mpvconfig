@@ -20,18 +20,17 @@ Please note that many of these scripts have been slightly modified from their in
 | [autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua) loads files in the directory to play through | None |
 | [autoloop](https://github.com/zydezu/mpvconfig/blob/main/scripts/autoloop.lua) loops files by default that are smaller than a set duration | None |
 | [modernx](https://github.com/zydezu/modernx) an modern OSC for mpv with many additional features | **x** - Cycle through audio tracks <br>**c** - Cycle through subtitle tracks <br>**P** - Pin or unpin the window <br>**TAB** - Show chapter list <br> For more: [Check repository](https://github.com/zydezu/modernx#buttons) |
-| [mpvcut](https://github.com/zydezu/mpvconfig/blob/main/scripts/mpvcut.lua) allows clipping a segment of a video | **z** - Mark start segment <br> **z (again)** - Clip the video <br> **shift+z** - Cancel the clip <br> **a** - Change mode (copy, encode, compress) |
-| [qualitymenu](https://github.com/christoph-heinrich/mpv-quality-menu) allows you to select the quality of a YouTube video playing in mpv. | **f** - Open video quality menu <br> **Alt+f** - Open audio quality menu <br> **Arrows and Enter** - Navigate options and confirm a selection <br> **Esc** - Exit menu |
+| [mpvcut](https://github.com/zydezu/mpvconfig/blob/main/scripts/mpvcut.lua.disable) allows clipping a segment of a video | **z** - Mark start segment <br> **z (again)** - Clip the video <br> **shift+z** - Cancel the clip <br> **a** - Change mode (copy, encode, compress) |
 | [screenshotfolder](https://github.com/zydezu/mpvconfig/blob/main/scripts/screenshotfolder.lua) saves screenshots to a designated `~desktop/mpv/.../` folder | **s** - Take a screenshot |
-| [SmartCopyPaste](https://github.com/Eisa01/mpv-scripts#smartcopypaste) allows various files and links to be pasted into mpv | **Ctrl+v** - Paste |
-| [sponsorblock](https://github.com/po5/mpv_sponsorblock) skips sponsored segments of YouTube videos | **g** - Set segment boundaires <br> **Shift+g** - Submit a segment <br> **h** - Upvote last segment <br> **Shift+h** - Downvote last segment                      |
 | [thumbfast](https://github.com/po5/thumbfast) show thumbnails on the scrubbing bar | None |
-| [locatefile.lua](https://github.com/zydezu/mpvconfig/blob/main/scripts/locatefile.lua) opens the file in an explorer or a web browser | **o** - Open file |
-| [shadertoggle.lua](https://github.com/zydezu/mpvconfig/blob/main/scripts/shadertoggle.lua) loads shaders found in a folder of choice and toggles through them | **Ctrl+s** - Switch shaders |
 | [input.conf](https://github.com/zydezu/mpvconfig/blob/main/input.conf) an input configuration file | **-** - Decrease subtitle font size <br> **+** - Increase subtitle font size <br> **Scroll wheel** - Change volume |
 
 
 # Updates
+
+### 2024-04-04
+
+- Cut scripts I dont use for faster file opening times
 
 ### 2024-03-23
 
