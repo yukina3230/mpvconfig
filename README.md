@@ -28,6 +28,10 @@ Please note that many of these scripts have been slightly modified from their in
 
 # Updates
 
+### 2024-04-06
+
+- Fixed thumbnail chapters not showing, resolving [https://github.com/zydezu/ModernX/issues/21](https://github.com/zydezu/ModernX/issues/21)
+
 ### 2024-04-04
 
 - Cut scripts I dont use for faster file opening times
