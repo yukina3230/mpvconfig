@@ -1149,7 +1149,7 @@ function checktitle()
         elseif mp.get_property("filename/no-ext") ~= mediatitle then
             user_opts.title = "${media-title} | ${filename}" -- {filename/no-ext}
         else
-            user_opts.title = "${filename}" -- audio with the same title (without file extension) and filename
+            user_opts.title = "${media-title}" -- audio with the same title (without file extension) and filename
         end
     end
 
