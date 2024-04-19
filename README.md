@@ -1,4 +1,5 @@
 # mpvconfig
+
 ![2023-12-09_12-28-51_412_mpv](https://github.com/zydezu/mpvconfig/assets/50119098/0a96511e-0a42-4f6d-b5f7-23a40ec6020f)
 
 My personal [mpv](https://mpv.io/) config.
@@ -6,12 +7,13 @@ My personal [mpv](https://mpv.io/) config.
 > [!NOTE]
 > Releases of the [modernX](https://github.com/zydezu/modernX) script are in a seperate repository - see here [https://github.com/zydezu/ModernX/releases](https://github.com/zydezu/ModernX/releases).
 
-# Usage
-Use `git clone https://github.com/zydezu/mpvconfig mpv`, and place it in the relevant directory. This will be typically located at `\%APPDATA%\mpv\` on Windows and `~/.config/mpv/` on Linux/MacOS. 
+## Usage
+
+Use `git clone https://github.com/zydezu/mpvconfig mpv`, and place it in the relevant directory. This will be typically located at `\%APPDATA%\mpv\` on Windows and `~/.config/mpv/` on Linux/MacOS.
 
 See the [Files section](https://mpv.io/manual/master/#files) in mpv's manual for more information.
 
-# Scripts and Associated Keybinds
+## Scripts and Associated Keybinds
 
 Please note that many of these scripts have been slightly modified from their initial repositories. Compare the scripts to find the modifications.
 
@@ -25,8 +27,7 @@ Please note that many of these scripts have been slightly modified from their in
 | [thumbfast](https://github.com/po5/thumbfast) show thumbnails on the scrubbing bar | None |
 | [input.conf](https://github.com/zydezu/mpvconfig/blob/main/input.conf) an input configuration file | **-** - Decrease subtitle font size <br> **+** - Increase subtitle font size <br> **Scroll wheel** - Change volume |
 
-
-# Updates
+## Updates
 
 ### 2024-04-06
 
@@ -83,9 +84,6 @@ Please note that many of these scripts have been slightly modified from their in
 ### 2024-01-15
 
 - Fixed fetching dislikes via the YouTube Dislike API in `modernX` and screenshotting in `screenshotfolder.lua` when viewing YouTube short 'share' links, along with the `dynamictitle` option
-
-### 2024-01-15
-
 - Updated dislike formatting and error checking
 
 ### 2024-01-14
@@ -93,7 +91,7 @@ Please note that many of these scripts have been slightly modified from their in
 - Altered the default yt-dlp settings in [modernx.lua](https://github.com/zydezu/mpvconfig/blob/main/scripts/modernx.lua) to make it work better on more video players, these change be changed with `ytdlpQuality`
 - Added the `updatetitleyoutubestats` option in [modernx.lua](https://github.com/zydezu/mpvconfig/blob/main/scripts/modernx.lua), which when enabled, updates the window/OSC title bar with YouTube video stats (views, likes, dislikes)
 - Implemented [https://github.com/cyl0/ModernX/pull/59](https://github.com/cyl0/ModernX/pull/59)
-- Added the `persistentprogressheight` option to [modernx.lua](https://github.com/zydezu/mpvconfig/blob/main/scripts/modernx.lua), [as part of this issue](https://github.com/zydezu/mpvconfig/issues/9) 
+- Added the `persistentprogressheight` option to [modernx.lua](https://github.com/zydezu/mpvconfig/blob/main/scripts/modernx.lua), [as part of this issue](https://github.com/zydezu/mpvconfig/issues/9)
 
 ### 2024-01-12
 
@@ -135,6 +133,7 @@ Please note that many of these scripts have been slightly modified from their in
 ### 2023-12-22
 
 - Fixed [this issue](https://github.com/zydezu/mpvconfig/issues/7) - [modernx 0.2.3] The OSC doesn't hide #7... this is because I forgot to finish writing this line...
+
 ```lua
 if (not (state.paused and user_opts.donttimeoutonpause)) then
     hide_osc()
@@ -145,13 +144,9 @@ end
 
 - Fixed screenshotting playing YouTube videos [screenshotfolder](https://github.com/zydezu/mpvconfig/blob/main/scripts/screenshotfolder.lua)
 - Fixed quality menu for ytdl:// playing videos
-
-### 2023-12-16
-
 - Edited video info formatting
 - When playing YouTube videos, information like views, likes and dislikes are added to the window title
 - [modernx.lua](https://github.com/zydezu/mpvconfig/blob/main/scripts/modernx.lua) properly respects the `raisesubswithosc` option
-
 
 ### 2023-12-13
 
@@ -169,7 +164,6 @@ end
 - Fixed description line breaks not working in description metadata of some old youtube videos
 
 ![2023-12-09_12-03-14_260_mpv](https://github.com/zydezu/mpvconfig/assets/50119098/1b7da399-fef3-4990-9286-8ecfd3d0ed0a)
-
 
 ### 2023-11-27
 
@@ -222,7 +216,6 @@ end
 
 - Fixed UI not scaling properly on mpv.net
 
-
 ### 2023-08-12 (Part 2)
 
 - Fixed download location on unix systems
@@ -231,7 +224,6 @@ end
 - Fixed subtitles sometimes showing in the wrong position when toggling window pinning or fullscreen
 - OSC shows up when using keybinds (Shift + < or Shift + >) to change playlist items
 - Fixed a crash when dragging the seekbar quickly to the end, and the next video immidiately playing
-
 
 ### 2023-08-12
 
@@ -246,92 +238,72 @@ end
 
 - Bug fixes
 
-
 ### 2023-08-07
 
 - Fixed m3u files crashing `modernX.lua`
-
 
 ### 2023-08-06
 
 - Fixed long descriptions lagging the player
 - Added a scrolling description box
 
-
 ### 2023-08-05
 
 - Added an approximate download size to the download button
-
 
 ### 2023-07-30
 
 - Revamped settings
 
-
 ### 2023-07-27
 
 - Tweaked description error handling
-
 
 ### 2023-07-01
 
 - Fixed pasting some links
 
-
 ### 2023-06-30
 
 - Updated the autoload script
-
 
 ### 2023-06-28
 
 - Fixed broken icons on some systems
 - Fixed some bugs
 
-
 ### 2023-06-27
 
 - Changed screenshot and download file destinations
-
 
 ### 2023-06-26
 
 - Fixed some bugs
 
-
 ### 2023-05-31
 
 - Added a download icon on web videos
-
 
 ### 2023-05-29
 
 - Updated some scripts
 
-
 ### 2023-05-27
 
 - Fixed subtitle positioning when OSC is shown on different resolutions
-
 
 ### 2023-05-21
 
 - Added an option for round icons
 
-
 ### 2023-05-14
 
 - Slightly tweaked settings
-
 
 ### 2023-05-08
 
 - Added an osc message on screenshot
 - Slightly changed file path and duplicate screenshots
-
-
-### 2023-05-08
-
 - Optimised code
 - Increased OSC message duration
 - Tweaked the quality menu
