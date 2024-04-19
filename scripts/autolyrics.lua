@@ -13,7 +13,6 @@ local manualrun = false
 local gotlyrics = false
 local withoutTimestamps = false
 local downloadingName = ""
-local downloadedSubsOn = false
 
 local function show_error(message)
     mp.msg.error(message)
@@ -149,7 +148,7 @@ local function save_lyrics(lyrics)
     end    
 
     local path = mp.get_property('path')
-    local media = downloadingName .. " [" .. mp.get_property("media-title") .. "]"
+    local media = downloadingName .. " [" .. mp.get_property("filename/no-ext") .. "]"
     local pattern = '[\\/:*?"<>|]'
 
     if (is_url(path) and path or nil) and options.loadforyoutube then
@@ -191,18 +190,7 @@ local function save_lyrics(lyrics)
     lrc:close()
 
     if lyrics:find('^%[') then
-        if not downloadedSubsOn then 
-            local old_subtitle_count, subtitle_count = get_subtitle_count(), nil
-            if options.cacheloading then
-                mp.set_property('sub-file-paths', mp.command_native({"expand-path", options.lyricsstore}))
-                mp.command(current_sub_path and 'sub-reload' or 'rescan-external-files') 
-                subtitle_count = get_subtitle_count()
-            end
-            if (old_subtitle_count == subtitle_count) or not options.cacheloading then
-                mp.commandv("sub-add", lrc_path)
-                mp.command(current_sub_path and 'sub-reload' or 'rescan-external-files') 
-            end
-        end
+        mp.command(current_sub_path and 'sub-reload' or 'rescan-external-files') 
         if manualrun then
             mp.osd_message(success_message)
         end
@@ -384,16 +372,22 @@ function get_subtitle_count()
 end
 
 function autodownload()
-    downloadedSubsOn = false
     local old_subtitle_count, subtitle_count = get_subtitle_count(), nil
+
+    if old_subtitle_count > 0 then
+        print("Subtitles detected - aborting download process")
+        return
+    end
+    
     if options.cacheloading then
         -- check if already downloaded lyrics exist and were loaded
+        local current_sub_path = mp.get_property('current-tracks/sub/external-filename')
         mp.set_property('sub-file-paths', mp.command_native({"expand-path", options.lyricsstore}))
         mp.command(current_sub_path and 'sub-reload' or 'rescan-external-files')
         subtitle_count = get_subtitle_count()
     end
+
     if (old_subtitle_count ~= subtitle_count) and options.cacheloading then
-        downloadedSubsOn = true
         print("Subs previously downloaded - not downloading again")
     else
         gotlyrics = false

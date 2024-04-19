@@ -32,6 +32,8 @@ Please note that many of these scripts have been slightly modified from their in
 ### 2024-04-19
 
 - Fixed persistentprogresstoggle changes not showing without mouse movement or OSC showing
+- Removed 'NA' showing up in audio/subtitle tooltips
+- Improved `cacheloading` on autolyrics.lua
 
 ### 2024-04-06
 
