@@ -29,6 +29,10 @@ Please note that many of these scripts have been slightly modified from their in
 
 ## Updates
 
+### 2024-04-19
+
+- Fixed persistentprogresstoggle changes not showing without mouse movement or OSC showing
+
 ### 2024-04-06
 
 - Fixed thumbnail chapters not showing, resolving [https://github.com/zydezu/ModernX/issues/21](https://github.com/zydezu/ModernX/issues/21)
