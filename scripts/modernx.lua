@@ -3589,6 +3589,7 @@ if user_opts.keybindings then
     if (user_opts.persistentprogresstoggle) then
         mp.add_key_binding("b", "persistenttoggle", function()
             state.persistentprogresstoggle = not state.persistentprogresstoggle
+            tick()
             print("Persistent progress bar toggled")
         end);
     end
