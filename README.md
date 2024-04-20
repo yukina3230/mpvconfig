@@ -33,6 +33,7 @@ Please note that many of these scripts have been slightly modified from their in
 
 - Fixed a crash that sometimes occured when changing videos in a playlist
 - Fixed playtime showing '-00:00' for a short time upon file load
+- Cleaned up debug messages in the terminal
 
 ### 2024-04-19
 
