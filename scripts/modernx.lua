@@ -2989,9 +2989,9 @@ function osc_init()
     ne = new_element('tc_left', 'button')
     ne.content = function ()
     if (state.fulltime) then
-        return (mp.get_property_osd('playback-time/full'))
+        return mp.get_property_osd('playback-time/full'):gsub('-', '')
     else
-        return (mp.get_property_osd('playback-time'))
+        return mp.get_property_osd('playback-time'):gsub('-', '')
     end
     end
     ne.eventresponder["mbtn_left_up"] = function ()
