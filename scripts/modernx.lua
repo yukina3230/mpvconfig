@@ -455,15 +455,19 @@ end
 
 -- translates global (mouse) coordinates to value
 function get_slider_value_at(element, glob_pos)
+    if (element) then    
+        local val = scale_value(
+            element.slider.min.glob_pos, element.slider.max.glob_pos,
+            element.slider.min.value, element.slider.max.value,
+            glob_pos)
+    
+        return limit_range(
+            element.slider.min.value, element.slider.max.value,
+            val)
+    end
 
-    local val = scale_value(
-        element.slider.min.glob_pos, element.slider.max.glob_pos,
-        element.slider.min.value, element.slider.max.value,
-        glob_pos)
-
-    return limit_range(
-        element.slider.min.value, element.slider.max.value,
-        val)
+    -- fall back incase of loading errors
+    return 0
 end
 
 -- get value at current mouse position
