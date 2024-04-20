@@ -52,19 +52,23 @@ end
 local function get_metadata()
     local metadata = mp.get_property_native('metadata')
     local title, artist, album
-    if next(metadata) == nil then
-        mp.msg.info("couldn't load metadata!")
+    if metadata then
+        if next(metadata) == nil then
+            mp.msg.info("couldn't load metadata!")
+        else
+            title = metadata.title or metadata.TITLE or metadata.Title
+            if options.downloadforall then
+                title = mp.get_property("media-title")
+                title = title:gsub('%b[]', '') .. " "
+            end
+            artist = metadata.artist or metadata.ARTIST or metadata.Artist or mp.get_property("filtered-metadata/by-key/Uploader")
+            if options.downloadforall and not artist then
+                artist = " "
+            end
+            album = metadata.album or metadata.ALBUM or metadata.Album
+        end
     else
-        title = metadata.title or metadata.TITLE or metadata.Title
-        if options.downloadforall then
-            title = mp.get_property("media-title")
-            title = title:gsub('%b[]', '') .. " "
-        end
-        artist = metadata.artist or metadata.ARTIST or metadata.Artist or mp.get_property("filtered-metadata/by-key/Uploader")
-        if options.downloadforall and not artist then
-            artist = " "
-        end
-        album = metadata.album or metadata.ALBUM or metadata.Album
+        mp.msg.info("couldn't load metadata!")
     end
 
     if not title then
@@ -307,7 +311,7 @@ function neteasedownload()
     end
 
     for _, song in ipairs(songs) do
-        mp.msg.info(
+        mp.msg.trace(
             'Found lyrics for the song with id ' .. song.id ..
             ', name ' .. song.name ..
             ', artist ' .. song.artists[1].name ..
@@ -328,7 +332,7 @@ function neteasedownload()
         end
     end
 
-    mp.msg.info(
+    mp.msg.trace(
         'Downloading lyrics for the song with id ' .. song.id ..
         ', name ' .. song.name ..
         ', artist ' .. song.artists[1].name ..

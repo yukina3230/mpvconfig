@@ -1169,9 +1169,9 @@ function checktitle()
     state.youtubeuploader = artist
     if mp.get_property_native('metadata') then
         state.ytdescription = mp.get_property_native('metadata').ytdl_description or ""
-        print("Metadata: " .. utils.to_string(mp.get_property_native('metadata')))
+        -- print("Metadata: " .. utils.to_string(mp.get_property_native('metadata')))
     else
-        print("Failed to load metadata")
+        -- print("Failed to load metadata")
     end
 
     state.localDescriptionClick = title .. "\\N----------\\N"
