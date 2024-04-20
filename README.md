@@ -29,6 +29,11 @@ Please note that many of these scripts have been slightly modified from their in
 
 ## Updates
 
+### 2024-04-20
+
+- Fixed a crash that sometimes occured when changing videos in a playlist
+- Fixed playtime showing '-00:00' for a short time upon file load
+
 ### 2024-04-19
 
 - Fixed persistentprogresstoggle changes not showing without mouse movement or OSC showing
