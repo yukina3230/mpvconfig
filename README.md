@@ -29,6 +29,10 @@ Please note that many of these scripts have been slightly modified from their in
 
 ## Updates
 
+### 2024-04-24
+
+- Try to fix [https://github.com/zydezu/ModernX/issues/14](https://github.com/zydezu/ModernX/issues/14)
+
 ### 2024-04-20
 
 - Fixed a crash that sometimes occured when changing videos in a playlist

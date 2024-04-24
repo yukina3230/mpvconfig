@@ -1174,7 +1174,7 @@ function checktitle()
         -- print("Failed to load metadata")
     end
 
-    state.localDescriptionClick = title .. "\\N----------\\N"
+    if (title) then state.localDescriptionClick = title .. "\\N----------\\N" end
     if (description ~= nil) then
         description = description:gsub('\n', '\\N'):gsub('\r', '\\N') -- old youtube videos seem to use /r
         
