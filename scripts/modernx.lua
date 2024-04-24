@@ -3614,6 +3614,8 @@ if user_opts.keybindings then
             end
         end
     end);
+
+    mp.add_key_binding(nil, 'show_osc', function() show_osc() end)
 end
 
 mp.observe_property('fullscreen', 'bool',

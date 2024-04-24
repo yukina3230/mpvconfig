@@ -32,6 +32,7 @@ Please note that many of these scripts have been slightly modified from their in
 ### 2024-04-24
 
 - Try to fix [https://github.com/zydezu/ModernX/issues/14](https://github.com/zydezu/ModernX/issues/14)
+- Fixed [https://github.com/zydezu/ModernX/issues/25](https://github.com/zydezu/ModernX/issues/25)
 
 ### 2024-04-20
 
