@@ -1143,7 +1143,6 @@ function startupevents()
     state.fileSizeNormalised = "Approximating size..."
     checktitle()
     checkWebLink()
-    print(mp.get_property_number("duration", 0))
     if user_opts.automatickeyframemode then
         if mp.get_property_number("duration", 0) > user_opts.automatickeyframelimit then
             user_opts.seekbarkeyframes = true
