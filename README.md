@@ -32,6 +32,8 @@ Please note that many of these scripts have been slightly modified from their in
 ### 2024-04-26
 
 - Update default font settings (windows)
+- Tweaked `dynamictitle` in ModernX to be cleaner
+- Added `automatickeyframemode` and `automatickeyframelimit` to modernX, resolving [https://github.com/zydezu/ModernX/issues/23](https://github.com/zydezu/ModernX/issues/23)
 
 ### 2024-04-24
 
