@@ -1177,94 +1177,96 @@ function checktitle()
         -- print("Failed to load metadata")
     end
 
-    if (title) then state.localDescriptionClick = title .. "\\N----------\\N" end
-    if (description ~= nil) then
-        description = description:gsub('\n', '\\N'):gsub('\r', '\\N') -- old youtube videos seem to use /r
-        
-        local utf8split, lastchar = splitUTF8(description, maxdescsize) -- account for CJK
-        local desc
-        if utf8split then
-            if #utf8split == #description then
-                desc = utf8split
+    if user_opts.showdescription then
+        if (title) then state.localDescriptionClick = title .. "\\N----------\\N" end
+        if (description ~= nil) then
+            description = description:gsub('\n', '\\N'):gsub('\r', '\\N') -- old youtube videos seem to use /r
+            
+            local utf8split, lastchar = splitUTF8(description, maxdescsize) -- account for CJK
+            local desc
+            if utf8split then
+                if #utf8split == #description then
+                    desc = utf8split
+                else
+                    desc = utf8split .. '...'
+                end
             else
-                desc = utf8split .. '...'
+                if #description > maxdescsize then
+                    desc = description:sub(1, maxdescsize) .. '...'
+                else
+                    desc = description:sub(1, maxdescsize)
+                end
             end
-        else
-            if #description > maxdescsize then
-                desc = description:sub(1, maxdescsize) .. '...'
-            else
-                desc = description:sub(1, maxdescsize)
-            end
-        end
-        
-        state.localDescription = desc
-        state.localDescriptionClick = state.localDescriptionClick .. description .. "\\N----------"
-        state.localDescriptionIsClickable = true
-    end
-    if (artist ~= nil) then
-        if (state.localDescription == nil) then
-            state.localDescription = "By: " .. artist
-            state.localDescriptionClick = state.localDescriptionClick .. state.localDescription
+            
+            state.localDescription = desc
+            state.localDescriptionClick = state.localDescriptionClick .. description .. "\\N----------"
             state.localDescriptionIsClickable = true
-        else
-            state.localDescriptionClick = state.localDescriptionClick .. "\\NBy: " .. artist
-            state.localDescription = state.localDescription .. " | By: " .. artist
         end
-    end
-    if (album ~= nil) then
-        if (state.localDescription == nil) then -- only metadata
-            state.localDescription = "Album: " .. album
-            state.localDescriptionClick = state.localDescriptionClick .. state.localDescription
-            state.localDescriptionIsClickable = true
-        else -- append to other metadata
-            if (state.localDescriptionClick ~= nil) then 
-                state.localDescriptionClick = state.localDescriptionClick .. " - " .. album
-            else
-                state.localDescriptionClick = album
-                state.localDescriptionIsClickable = true
-            end
-            state.localDescription = state.localDescription .. " - " .. album
-        end
-    end
-    if (date ~= nil) then
-        local datenormal = normaliseDate(date)
-        local datetext = "Year"
-        if (#datenormal > 4) then datetext = "Date" end
-        if (state.localDescription == nil) then -- only metadata
-            state.localDescription = datetext .. ": " .. datenormal
-            state.localDescriptionClick = state.localDescriptionClick .. state.localDescription
-            state.localDescriptionIsClickable = true
-        else -- append to other metadata
-            if (state.localDescriptionClick ~= nil) then
-                state.localDescriptionClick = state.localDescriptionClick .. "\\N" .. datetext .. ": " .. datenormal
-            else
-                state.localDescriptionClick = datenormal
-                state.localDescriptionIsClickable = true
-            end
-            state.localDescription = state.localDescription .. " | " ..  datetext .. ": " .. datenormal
-        end
-    end
-
-    local function format_file_size(file_size)
-        local units = {"bytes", "KB", "MB", "GB", "TB"}
-        local unit_index = 1
-        while file_size >= 1024 and unit_index < #units do
-            file_size = file_size / 1024
-            unit_index = unit_index + 1
-        end
-        return string.format("%.2f %s", file_size, units[unit_index])
-    end
-
-    if (user_opts.showfilesize) then
-        file_size = mp.get_property_native("file-size")
-        if (file_size ~= nil) then
-            file_size = format_file_size(file_size)
-            if (state.localDescription == nil) then -- only metadata
-                state.localDescription = "Size: " .. file_size
+        if (artist ~= nil) then
+            if (state.localDescription == nil) then
+                state.localDescription = "By: " .. artist
                 state.localDescriptionClick = state.localDescriptionClick .. state.localDescription
                 state.localDescriptionIsClickable = true
             else
-                state.localDescriptionClick = state.localDescriptionClick .. "\\NSize: " .. file_size
+                state.localDescriptionClick = state.localDescriptionClick .. "\\NBy: " .. artist
+                state.localDescription = state.localDescription .. " | By: " .. artist
+            end
+        end
+        if (album ~= nil) then
+            if (state.localDescription == nil) then -- only metadata
+                state.localDescription = "Album: " .. album
+                state.localDescriptionClick = state.localDescriptionClick .. state.localDescription
+                state.localDescriptionIsClickable = true
+            else -- append to other metadata
+                if (state.localDescriptionClick ~= nil) then 
+                    state.localDescriptionClick = state.localDescriptionClick .. " - " .. album
+                else
+                    state.localDescriptionClick = album
+                    state.localDescriptionIsClickable = true
+                end
+                state.localDescription = state.localDescription .. " - " .. album
+            end
+        end
+        if (date ~= nil) then
+            local datenormal = normaliseDate(date)
+            local datetext = "Year"
+            if (#datenormal > 4) then datetext = "Date" end
+            if (state.localDescription == nil) then -- only metadata
+                state.localDescription = datetext .. ": " .. datenormal
+                state.localDescriptionClick = state.localDescriptionClick .. state.localDescription
+                state.localDescriptionIsClickable = true
+            else -- append to other metadata
+                if (state.localDescriptionClick ~= nil) then
+                    state.localDescriptionClick = state.localDescriptionClick .. "\\N" .. datetext .. ": " .. datenormal
+                else
+                    state.localDescriptionClick = datenormal
+                    state.localDescriptionIsClickable = true
+                end
+                state.localDescription = state.localDescription .. " | " ..  datetext .. ": " .. datenormal
+            end
+        end
+
+        local function format_file_size(file_size)
+            local units = {"bytes", "KB", "MB", "GB", "TB"}
+            local unit_index = 1
+            while file_size >= 1024 and unit_index < #units do
+                file_size = file_size / 1024
+                unit_index = unit_index + 1
+            end
+            return string.format("%.2f %s", file_size, units[unit_index])
+        end
+
+        if (user_opts.showfilesize) then
+            file_size = mp.get_property_native("file-size")
+            if (file_size ~= nil) then
+                file_size = format_file_size(file_size)
+                if (state.localDescription == nil) then -- only metadata
+                    state.localDescription = "Size: " .. file_size
+                    state.localDescriptionClick = state.localDescriptionClick .. state.localDescription
+                    state.localDescriptionIsClickable = true
+                else
+                    state.localDescriptionClick = state.localDescriptionClick .. "\\NSize: " .. file_size
+                end
             end
         end
     end
