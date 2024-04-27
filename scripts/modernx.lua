@@ -118,7 +118,7 @@ local icons = {
   next = '\239\142\180',
   play = '\239\142\170',
   pause = '\239\142\167',
-  replay = '', -- copied private use character
+  replay = '\239\142\178', -- copied private use character
   backward = '\239\142\160',
   forward = '\239\142\159',
   audio = '\239\142\183',
@@ -128,8 +128,8 @@ local icons = {
   sub = '\239\140\164',
   minimize = '\239\133\172',
   fullscreen = '\239\133\173',  
-  loopoff = '',
-  loopon = '', 
+  loopoff = '\239\142\173',
+  loopon = '\239\142\174', 
   info = '\239\135\183',
   download = '\239\136\160',
   downloading = '\239\134\185',
@@ -165,6 +165,12 @@ local language = {
         ontopdisable = 'Unpin window',
         loopenable = 'Enable looping',
         loopdisable = 'Disable looping',
+        mute = 'Mute',
+        unmute = 'Unmute',
+        info = 'Show info',
+        hideinfo = 'Hide info',
+        fullscreen = 'Fullscreen',
+        exitfullscreen = 'Exit fullscreen',
     },
     ['chs'] = {
         welcome = '{\\fs24\\1c&H0&\\1c&HFFFFFF&}将文件或URL放在这里播放',  -- this text appears when mpv starts
@@ -253,9 +259,10 @@ local osc_styles = {
     Ctrl3 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fn' .. iconfont .. '}',
     Time = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.timefontsize .. '\\fn' .. user_opts.font .. '}',
     Tooltip = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.timefontsize .. '\\fn' .. user_opts.font .. '}',
-    Title = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs'.. user_opts.titlefontsize ..'\\q2\\fn' .. user_opts.font .. '}',
-    WindowTitle = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs'.. 18 ..'\\q2\\fn' .. user_opts.font .. '}',
-    Description = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs'.. 18 ..'\\q2\\fn' .. user_opts.font .. '}',
+    VolumeValue = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.timefontsize + 2 .. '\\q2\\fn' .. user_opts.font .. '}',
+    Title = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs' .. user_opts.titlefontsize .. '\\q2\\fn' .. user_opts.font .. '}',
+    WindowTitle = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs' .. user_opts.titlefontsize - 2 .. '\\q2\\fn' .. user_opts.font .. '}',
+    Description = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.timefontsize .. '\\q2\\fn' .. user_opts.font .. '}',
     WinCtrl = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs20\\fnmpv-osd-symbols}',
     elementDown = '{\\1c&H999999&}',
     elementHover = "{\\blur5\\2c&HFFFFFF&}",
@@ -308,6 +315,7 @@ local state = {
     isWebVideo = false,
     path = "",                               -- used for yt-dlp downloading
     downloading = false,
+    show_info = false,
     fileSizeBytes = 0,
     fileSizeNormalised = "Approximating size...",
     localDescription = nil,
@@ -1870,10 +1878,10 @@ end
 function window_controls()
     local wc_geo = {
         x = 0,
-        y = 30,
+        y = 40,
         an = 1,
         w = osc_param.playresx,
-        h = 30
+        h = 40
     }
 
     local controlbox_w = window_control_box_width
@@ -1926,7 +1934,7 @@ function window_controls()
             return titleval
         end
         lo = add_layout('windowtitle')
-        geo = {x = 10, y = button_y + 10, an = 1, w = osc_param.playresx - 50, h = wc_geo.h}
+        geo = {x = 15, y = button_y + 15, an = 1, w = osc_param.playresx - 50, h = wc_geo.h}
         lo.geometry = geo
         lo.style = osc_styles.WindowTitle
         lo.button.maxchars = geo.w / 10
@@ -1936,7 +1944,7 @@ function window_controls()
     ne = new_element('close', 'button')
     ne.content = '\238\132\149'
     ne.eventresponder['mbtn_left_up'] =
-        function () mp.commandv('quit') end
+        function () mp.commandv('script-message', 'eof-replay') end
     lo = add_layout('close')
     lo.geometry = third_geo
     lo.style = osc_styles.WinCtrl
@@ -2026,14 +2034,14 @@ layouts = function ()
     -- Seekbar
     new_element('seekbarbg', 'box')
     lo = add_layout('seekbarbg')
-    lo.geometry = {x = refX , y = refY - 100, an = 5, w = osc_geo.w - 50, h = 2}
+    lo.geometry = {x = refX , y = refY - 106, an = 5, w = osc_geo.w - 50, h = 4}
     lo.layer = 13
     lo.style = osc_styles.SeekbarBg
     lo.alpha[1] = 128
     lo.alpha[3] = 128
 
     lo = add_layout('seekbar')
-    lo.geometry = {x = refX, y = refY - 100, an = 5, w = osc_geo.w - 50, h = 16}
+    lo.geometry = {x = refX, y = refY - 106, an = 5, w = osc_geo.w - 50, h = 18}
     lo.style = osc_styles.SeekbarFg
     lo.slider.gap = 7
     lo.slider.tooltip_style = osc_styles.Tooltip
@@ -2083,13 +2091,13 @@ layouts = function ()
     lo = new_element('volumebarbg', 'box')
     lo.visible = (osc_param.playresx >= 900 - outeroffset) and user_opts.volumecontrol
     lo = add_layout('volumebarbg')
-    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 2}
+    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 4}
     lo.layer = 13
     lo.alpha[1] = 128
     lo.style = osc_styles.VolumebarBg
     
     lo = add_layout('volumebar')
-    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 8}
+    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 10}
     lo.style = osc_styles.VolumebarFg
     lo.slider.gap = 3
     lo.slider.tooltip_style = osc_styles.Tooltip
@@ -2144,11 +2152,11 @@ layouts = function ()
 
     -- Time
     lo = add_layout('tc_left')
-    lo.geometry = {x = 25, y = refY - 84, an = 7, w = 64, h = 20}
+    lo.geometry = {x = 25, y = refY - 94, an = 7, w = 64, h = 20}
     lo.style = osc_styles.Time
         
     lo = add_layout('tc_right')
-    lo.geometry = {x = osc_geo.w - 25 , y = refY -84, an = 9, w = 64, h = 20}
+    lo.geometry = {x = osc_geo.w - 25 , y = refY -94, an = 9, w = 64, h = 20}
     lo.style = osc_styles.Time
 
     -- Audio/Subtitle
@@ -2163,9 +2171,15 @@ layouts = function ()
     lo.visible = (osc_param.playresx >= 600 - outeroffset)
 
     lo = add_layout('vol_ctrl')
-    lo.geometry = {x = 127, y = refY - 40, an = 5, w = 24, h = 24}
+    lo.geometry = {x = 130, y = refY - 40, an = 5, w = 24, h = 24}
     lo.style = osc_styles.Ctrl3
     lo.visible = (osc_param.playresx >= 700 - outeroffset)
+
+    -- Volume Value
+    lo = add_layout('vol_value')
+    lo.geometry = {x = 250, y = refY - 40, an = 4, w = 20, h = 20}
+    lo.style = osc_styles.VolumeValue
+    lo.visible = (osc_param.playresx >= 900 - outeroffset) and user_opts.volumecontrol
 
     -- Fullscreen/Loop/Info
     lo = add_layout('tog_fs')
@@ -2606,13 +2620,22 @@ function osc_init()
         if state.mute then
             return icons.volumemute
         else
-            if volume > 85 then
+            if volume > 70 then
                 return icons.volume
             else
                 return icons.volumelow
             end
         end
     end
+    ne.tooltip_style = osc_styles.Tooltip
+    ne.tooltipF = function ()
+		local msg = texts.mute
+        if (state.mute) then
+            msg = texts.unmute
+        end
+        return msg
+    end
+    ne.nothingavailable = texts.noaudio
     ne.eventresponder['mbtn_left_up'] =
         function () 
             mp.commandv('cycle', 'mute')
@@ -2638,6 +2661,14 @@ function osc_init()
         end
     end
     ne.visible = (osc_param.playresx >= 250)
+    ne.tooltip_style = osc_styles.Tooltip
+    ne.tooltipF = function ()
+        local msg = texts.fullscreen
+        if (state.fullscreen) then
+            msg = texts.exitfullscreen
+        end
+        return msg
+    end
     ne.eventresponder['mbtn_left_up'] =
         function () mp.commandv('cycle', 'fullscreen') end
 
@@ -2678,7 +2709,7 @@ function osc_init()
     ne.tooltip_style = osc_styles.Tooltip
     ne.tooltipF = function ()
         local msg = state.fileSizeNormalised
-        if (state.downloading)then
+        if (state.downloading) then
             msg = "Downloading..."
         end
         return msg
@@ -2743,8 +2774,19 @@ function osc_init()
     ne = new_element('tog_info', 'button')
     ne.content = icons.info
     ne.visible = (osc_param.playresx >= 800 - outeroffset - (user_opts.showloop and 0 or 100) - (user_opts.showontop and 0 or 100))
+    ne.tooltip_style = osc_styles.Tooltip
+    ne.tooltipF = function ()
+        local msg = texts.info
+        if (state.show_info) then
+            msg = texts.hideinfo
+        end
+        return msg
+    end
     ne.eventresponder['mbtn_left_up'] =
-        function () mp.commandv('script-binding', 'stats/display-stats-toggle') end
+        function ()
+            mp.commandv('script-binding', 'stats/display-stats-toggle')
+            state.show_info = not state.show_info
+        end
 
     --tog_ontop
     ne = new_element('tog_ontop', 'button')
@@ -2989,6 +3031,12 @@ function osc_init()
         function () mp.commandv("osd-auto", "add", "volume", 5) end
     ne.eventresponder["wheel_down_press"] =
         function () mp.commandv("osd-auto", "add", "volume", -5) end
+
+    -- volumevalue
+    ne = new_element('vol_value', 'button')
+    ne.content = function ()
+        return tostring(mp.get_property_number('volume'))
+    end
     
     -- tc_left (current pos)
     ne = new_element('tc_left', 'button')
@@ -3589,16 +3637,29 @@ if user_opts.keybindings then
     end
 
     -- extra key bindings
-    mp.add_key_binding("x", "cycleaudiotracks", function()
+    mp.add_key_binding("u", "cyclevideotracks", function()
+        set_track('video', 1) show_message(get_tracklist('video'))
+    end);
+    mp.add_key_binding("U", "cyclevideotracksbackwards", function()
+        set_track('video', -1) show_message(get_tracklist('video'))
+    end);
+    
+    mp.add_key_binding("j", "cycleaudiotracks", function()
         set_track('audio', 1) show_message(get_tracklist('audio'))
     end);
+    mp.add_key_binding("J", "cycleaudiotracksbackwards", function()
+        set_track('audio', -1) show_message(get_tracklist('audio'))
+    end);
 
-    mp.add_key_binding("c", "cyclecaptions", function()
+    mp.add_key_binding("n", "cyclecaptions", function()
         set_track('sub', 1) show_message(get_tracklist('sub'))
+    end);
+    mp.add_key_binding("N", "cyclecaptionsbackwards", function()
+        set_track('sub', -1) show_message(get_tracklist('sub'))
     end);
 
     if (user_opts.persistentprogresstoggle) then
-        mp.add_key_binding("b", "persistenttoggle", function()
+        mp.add_key_binding("O", "persistenttoggle", function()
             state.persistentprogresstoggle = not state.persistentprogresstoggle
             tick()
             print("Persistent progress bar toggled")
@@ -3620,7 +3681,13 @@ if user_opts.keybindings then
         end
     end);
 
-    mp.add_key_binding(nil, 'show_osc', function() show_osc() end)
+    mp.add_key_binding("ESC", 'toggle_osc', function()
+        if (state.osc_visible == false) then
+            show_osc()
+            return
+        end
+        hide_osc()
+    end);
 end
 
 mp.observe_property('fullscreen', 'bool',
@@ -3674,6 +3741,7 @@ mp.observe_property('osd-dimensions', 'native', function(name, val)
     --  we might have to worry about property update ordering)
     request_init_resize()
 end)
+
 -- mouse show/hide bindings
 mp.set_key_bindings({
     {'mouse_move',              function(e) process_event('mouse_move', nil) end},

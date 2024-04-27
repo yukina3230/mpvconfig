@@ -1,6 +1,26 @@
-local utils = require "mp.utils"
-local msg = require "mp.msg"
+utils = require "mp.utils"
+msg = require "mp.msg"
 
+local o = {
+	-- Save location
+	localsavetofolder = false, -- Save to `savedirectory` instead of the current folder
+	savedirectory = "~~desktop/mpv/clips", -- Required for web videos
+
+	-- Key config
+	keyCut = "z",
+	keyCancelCut = "Z",
+	keyCycleAction = "a",
+
+	-- The default action
+	action = "COPY",
+
+	-- File size target (MB)
+	compressSize = 24.00,
+
+	-- Web videos/cache
+	usecacheforwebvideos = true,
+}
+(require 'mp.options').read_options(o, 'mpvcut')
 
 local function print(s)
 	mp.msg.info(s)
@@ -59,6 +79,7 @@ function getfullpath()
 		end
 	end
 end
+mp.register_event("file-loaded", getfullpath)
 
 local function to_hms(seconds)
 	local ms = math.floor((seconds - math.floor(seconds)) * 1000)
@@ -156,7 +177,6 @@ function getBitrate()
 	end
 end
 
-mp.register_event("file-loaded", getfullpath)
 mp.register_event("file-loaded", resetBitrate)
 mp.add_periodic_timer(1, getBitrate)
 
