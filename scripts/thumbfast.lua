@@ -30,7 +30,7 @@ local options = {
     tone_mapping = "auto",
 
     -- Overlay id
-    overlay_id = 46,
+    overlay_id = 42,
 
     -- Spawn thumbnailer on file load for faster initial thumbnails
     spawn_first = false,
@@ -39,7 +39,7 @@ local options = {
     quit_after_inactivity = 0,
 
     -- Enable on network playback
-    network = true,
+    network = false,
 
     -- Enable on audio playback
     audio = false,
@@ -61,6 +61,7 @@ mp.options.read_options(options, "thumbfast")
 local properties = {}
 local pre_0_30_0 = mp.command_native_async == nil
 local pre_0_33_0 = true
+local support_media_control = mp.get_property_native("media-controls") ~= nil
 
 function subprocess(args, async, callback)
     callback = callback or function() end
@@ -465,6 +466,10 @@ local function spawn(time)
 
     if not pre_0_30_0 then
         table.insert(args, "--sws-allow-zimg=no")
+    end
+
+    if support_media_control then
+        table.insert(args, "--media-controls=no")
     end
 
     if os_name == "darwin" and properties["macos-app-activation-policy"] then
