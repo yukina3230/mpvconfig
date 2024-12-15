@@ -55,7 +55,6 @@ local user_opts = {
     windowcontrols_title = "${media-title}",    -- same as title but for windowcontrols
     dynamictitle = true,            -- change the title depending on if {media-title} and {filename} 
                                     -- differ (like with playing urls, audio or some media)
-    updatetitleyoutubestats = true, -- update the window/OSC title bar with YouTube video stats (views, likes, dislikes)
     font = 'mpv-osd-symbols',       -- mpv-osd-symbols = default osc font (or the one set in mpv.conf)
                                     -- to be shown as OSC title
     titlefontsize = 30,             -- the font size of the title text
@@ -77,6 +76,7 @@ local user_opts = {
     seekbarhandlesize = 0.8,        -- size ratio of the slider handle, range 0 ~ 1
     seekrange = true,               -- show seekrange overlay
     seekrangealpha = 150,           -- transparency of seekranges
+    iconstyle = 'round',            -- icon style, 'solid' or 'round'
     hovereffect = true,             -- whether buttons have a glowing effect when hovered over
 
     -- button settings --
@@ -93,15 +93,13 @@ local user_opts = {
     compactmode = true,             -- replace the jump buttons with the chapter buttons, clicking the
                                     -- buttons will act as jumping, and shift clicking will act as
                                     -- skipping a chapter
-    showloop = false,                -- show the loop button
+    showloop = true,                -- show the loop button
     loopinpause = true,             -- activate looping by right clicking pause
     showontop = true,               -- show window on top button
     showinfo = false,               -- show the info button
     downloadbutton = true,          -- show download button for web videos
     screenshotbutton = false,        -- show screenshot button
     downloadpath = "~~desktop/mpv/downloads", -- the download path for videos
-    showyoutubecomments = false,    -- EXPERIMENTAL - not ready
-    commentsdownloadpath = "~~desktop/mpv/downloads/comments", -- the download path for the comment JSON file
     ytdlpQuality = '' -- optional parameteres for yt-dlp downloading, eg: '-f bestvideo[vcodec^=avc][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
 }
 
@@ -128,9 +126,15 @@ local language = {
         loopdisable = 'Disable loop',
         screenshot = "Screenshot",
         statsinfo = "Information",
+        mute = 'Mute',
+        unmute = 'Unmute',
+        fullscreen = 'Fullscreen',
+        exitfullscreen = 'Exit fullscreen',
     }
 }
 
+-- read options from config and command-line
+opt.read_options(user_opts, 'modernx', function(list) update_options(list) end)
 -- apply lang opts
 local texts = language[user_opts.language] or language["en"]
 
@@ -160,50 +164,41 @@ local osc_param = {                         -- calculated by osc_init()
 }
 
 local icons = {
-    play = "\238\166\143",
-    pause = "\238\163\140",
-    replay = "\238\189\191",
-    previous = "\239\152\167",
-    next = "\239\149\168",
-    rewind = "\238\168\158",
-    forward = "\238\152\135",
+    play = "\239\142\170",
+    pause = "\239\142\167",
+    replay = "\239\142\178",
+    previous = "\239\142\181",
+    next = "\239\142\180",
+    rewind = "\239\142\160",
+    forward = "\239\142\159",
 
-    audio = "\238\175\139",
-    subtitle = "\238\175\141",
-    volume_mute = "\238\173\138",
-    volume_quiet = "\238\172\184",
-    volume_low = "\238\172\189",
-    volume_high = "\238\173\130",
+    audio = "\239\142\183",
+    subtitle = "\239\140\164",
+    volume_mute = "\239\142\187",
+    volume_quiet = "\239\142\186",
+    volume_low = "\239\142\185",
+    volume_high = "\239\142\188",
 
-    download = "\239\133\144",
-    downloading = "\239\140\174",
-    loop_off = "\239\133\178",
-    loop_on = "\239\133\181",
-    info = "\239\146\164",
-    ontop_on = "\238\165\190",
-    ontop_off = "\238\166\129",
-    screenshot = "\239\154\142",
-    fullscreen = "\239\133\160",
-    fullscreen_exit = "\239\133\166",
+    download = "\239\136\160",
+    downloading = "\239\134\185",
+    loop_off = "\239\142\174",
+    loop_on = "\239\142\173",
+    info = "\239\135\183",
+    ontop_on = "\239\143\154",
+    ontop_off = "\239\143\155",
+    screenshot = "\239\135\168",
+    fullscreen = "\239\133\173",
+    fullscreen_exit = "\239\133\172",
 
-    jumpicons = { 
-        [5] = {"\238\171\186", "\238\171\187"}, 
-        [10] = {"\238\171\188", "\238\172\129"}, 
-        [30] = {"\238\172\133", "\238\172\134"}, 
-        default = {"\238\172\138", "\238\172\138"}, -- second icon is mirrored in layout() 
+    jumpicons = {
+        [5] = {"\239\142\177", "\239\142\163"},
+        [10] = {"\239\142\175", "\239\142\161"},
+        [30] = {"\239\142\176", "\239\142\162"},
+        default = {"\239\142\178", "\239\142\178"}, -- second icon is mirrored in layout()
     },
-
-    emoticon = {
-        view = "👁️",
-        comment = "💬",
-        like = "👍",
-        dislike = "👎"
-    },
-
-    playlist = "\238\161\159", -- unused rn
 }
 
-local iconfont = 'fluent-system-icons'
+local iconfont = user_opts.iconstyle == "round" and "Material-Design-Iconic-Round" or "Material-Design-Iconic-Font"
 
 local osc_styles = {
     TransBg = "{\\blur100\\bord" .. user_opts.OSCfadealpha .. "\\1c&H000000&\\3c&H" .. osc_color_convert(user_opts.osc_color) .. "&}",
@@ -211,15 +206,16 @@ local osc_styles = {
     SeekbarFg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.seekbarfg_color) .. "&}",
     VolumebarBg = '{\\blur0\\bord0\\1c&H999999&}',
     VolumebarFg = '{\\blur1\\bord1\\1c&HFFFFFF&}',
-    Ctrl1 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs30\\fn' .. iconfont .. '}',
+    Ctrl1 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs36\\fn' .. iconfont .. '}',
     Ctrl2 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fn' .. iconfont .. '}',
     Ctrl2Flip = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fn' .. iconfont .. '\\fry180',
     Ctrl3 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fn' .. iconfont .. '}',
     Time = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.timefontsize .. '\\fn' .. user_opts.font .. '}',
     Tooltip = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.timefontsize .. '\\fn' .. user_opts.font .. '}',
-    Title = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs'.. user_opts.titlefontsize ..'\\q2\\fn' .. user_opts.font .. '}',
-    WindowTitle = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs'.. 18 ..'\\q2\\fn' .. user_opts.font .. '}',
-    Description = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs'.. user_opts.descriptionfontsize ..'\\q2\\fn' .. user_opts.font .. '}',
+    VolumeValue = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.timefontsize + 2 .. '\\q2\\fn' .. user_opts.font .. '}',
+    Title = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs' .. user_opts.titlefontsize .. '\\q2\\fn' .. user_opts.font .. '}',
+    WindowTitle = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs' .. user_opts.titlefontsize - 2 .. '\\q2\\fn' .. user_opts.font .. '}',
+    Description = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs' .. user_opts.descriptionfontsize .. '\\q2\\fn' .. user_opts.font .. '}',
     WinCtrl = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs20\\fnmpv-osd-symbols}',
     elementDown = '{\\1c&H999999&}',
     elementHover = "{\\blur5\\2c&HFFFFFF&}",
@@ -305,12 +301,6 @@ local state = {
     localDescriptionIsClickable = false,
     videoCantBeDownloaded = false,
     youtubeuploader = "",
-    youtubecomments = {},
-    commentsParsed = false,
-    currentCommentIndex = 0,
-    commentsPage = 0,
-    maxCommentPages = 0,
-    commentsAdditionalText = "",
     persistentprogresstoggle = user_opts.persistentprogress,
 }
 
@@ -1300,11 +1290,6 @@ end
 function checkWebLink()
     state.isWebVideo = false
     state.downloading = false
-    state.youtubecomments = {}
-    state.commentsParsed = false
-    state.currentCommentIndex = 0
-    state.commentsPage = 0
-    state.maxCommentPages = 0
 
     local path = mp.get_property("path")
     if not path then return nil end
@@ -1331,25 +1316,6 @@ function checkWebLink()
             exec_filesize(command)
         end
 
-        -- Youtube Return Dislike API
-        state.dislikes = ""
-        if path:find('youtu%.?be') and (user_opts.showdescription or user_opts.updatetitleyoutubestats) then
-            msg.info("WEB: Loading dislike count...")
-            local filename = mp.get_property_osd("filename")
-            local pattern = "v=([^&]+)"
-            local match = string.match(filename, pattern)
-            if match then
-                exec_dislikes({"curl","https://returnyoutubedislikeapi.com/votes?videoId=" .. match})
-            else
-                local _, _, videoID = string.find(filename, "([%w_-]+)%?si=")
-                if videoID then
-                    exec_dislikes({"curl","https://returnyoutubedislikeapi.com/votes?videoId=" .. videoID})
-                else
-                    msg.info("WEB: Failed to fetch dislikes")
-                end
-            end
-        end
-
         if user_opts.showdescription then
             msg.info("WEB: Loading video description...")
             local uploader = (state.youtubeuploader and '<$\\N!uploader!\\N$>') or "%(uploader)s"
@@ -1357,140 +1323,11 @@ function checkWebLink()
             local command = { 
                 "yt-dlp",
                 "--no-download", 
-                "-O \\N----------\\N" .. description .. "\\N----------\\NUploader: " .. uploader .. "\nUploaded: %(upload_date>".. user_opts.dateformat ..")s\nViews: %(view_count)s\nComments: %(comment_count)s\nLikes: %(like_count)s", 
+                "-O \\N----------\\N" .. description .. "\\N----------\\NUploader: " .. uploader .. "\nUploaded: %(upload_date>".. user_opts.dateformat ..")s", 
                 path
             }
             exec_description(command)
         end
-
-        if user_opts.showyoutubecomments then
-            msg.info("WEB: Downloading comments...")
-            checkcomments()
-        end
-    end
-end
-
-function checkcomments()
-    function file_exists(file)
-        local f = io.open(file, "rb")
-        if f then f:close() end
-        return f ~= nil
-    end              
-
-    function lines_from(file)
-        if not file_exists(file) then return {} end
-        local lines = {}
-        for line in io.lines(file) do 
-            lines[#lines + 1] = line
-        end
-        return lines
-    end         
-
-    local ret = mp.command_native_async({
-        name = "subprocess",
-        args = { 
-            "yt-dlp",
-            "--skip-download",
-            "--write-comments",
-            "-o%(id)s",
-            "-P " .. mp.command_native({"expand-path", user_opts.commentsdownloadpath}),
-            state.path 
-        },
-        capture_stdout = true,
-        capture_stderr = true
-    }, function() 
-        local filename = ""
-        if (mp.get_property("filename")) then
-            msg.info("WEB: Downloaded comments")
-            filename = mp.command_native({"expand-path", user_opts.commentsdownloadpath .. '/'}) .. mp.get_property("filename"):gsub("watch%?v=", ""):match("^[^%?&]+") .. ".info.json"
-            print(filename)
-        else
-            msg.info("WEB: Comments failed to download...")
-            return
-        end
-
-        if file_exists(filename) then
-            msg.info("WEB: Reading comments file...")
-            local lines = lines_from(filename)
-            state.jsoncomments = utils.parse_json(lines[1]).comments
-        else
-            msg.info("WEB: Error opening comments file")
-            return
-        end
-        state.maxCommentPages = math.ceil(#state.jsoncomments / commentsperpage)
-        if (#state.jsoncomments > 0) then
-            state.commentsParsed = true
-        else
-            user_opts.showyoutubecomments = false -- prevent crash when viewing comments
-        end
-        if state.showingDescription then
-            show_description(state.localDescriptionClick)
-        end
-        msg.info("WEB: Read and parsed comments")
-    end )
-end
-
-function loadSetOfComments(startIndex) 
-    if (#state.jsoncomments < 1) then
-        return
-    end
-
-    state.commentDescription = ""
-    for i=startIndex, #state.jsoncomments do
-        if i > startIndex + (commentsperpage - 1) then
-            state.currentCommentIndex = i
-            break
-        end
-
-        local comment = state.jsoncomments[i]
-        local commentconstruction = comment.author
-
-        local linebreak = ''
-        if (i ~= startIndex) then
-            linebreak = '\\N'
-        end
-        if (comment.parent ~= "root") then
-            commentconstruction = linebreak .. "\\N | " .. commentconstruction  .. " (Replying) | "
-        else
-            if (linebreak == '\\N') then
-                commentconstruction = linebreak .. '-----\\N' .. commentconstruction .. ' | '
-            else
-                commentconstruction = '\\N' .. commentconstruction .. ' | '
-            end
-        end
-
-        if (comment._time_text) then
-            commentconstruction = commentconstruction .. comment._time_text
-        end
-        if (comment.is_favorited) then
-            commentconstruction = commentconstruction .. (comment.is_favorited and ' | Favorited ♡\\N')
-        end
-        if (comment.is_pinned) then
-            commentconstruction = commentconstruction .. (comment.is_pinned and ' | Pinned 📌\\N')
-        else
-            commentconstruction = commentconstruction .. '\\N'
-        end
-
-        local replyPad = ""
-        if (comment.parent ~= "root") then
-            replyPad = " | "
-            commentconstruction = commentconstruction .. replyPad .. comment.text:gsub('\n', '\\N' .. replyPad)
-        else
-            commentconstruction = commentconstruction .. comment.text
-        end
-
-        if (comment.like_count) then
-            local likeText = " likes"
-            if (comment.like_count == 1) then
-                likeText = " like"
-            end
-            commentconstruction = commentconstruction .. '\\N' .. replyPad .. comment.like_count .. likeText
-        else
-            commentconstruction = commentconstruction ..  '\\N' .. replyPad ..  "0 likes"
-        end
-        -- print(commentconstruction)
-        state.youtubecomments[i] = commentconstruction
-        state.commentDescription = state.commentDescription .. commentconstruction
     end
 end
 
@@ -1567,12 +1404,8 @@ function exec_description(args, result)
             return 
         end
 
-        state.localDescriptionClick = mp.get_property("media-title", "") .. string.gsub(string.gsub(val.stdout, '\r', '\\N') .. state.dislikes, '\n', '\\N')
-        if (state.dislikes == "") then
-            state.localDescriptionClick = mp.get_property("media-title", "") .. string.gsub(string.gsub(val.stdout, '\r', '\\N'), '\n', '\\N')
-            state.localDescriptionClick = state.localDescriptionClick:sub(1, #state.localDescriptionClick - 2)
-        end
-        addLikeCountToTitle()
+        state.localDescriptionClick = mp.get_property("media-title", "") .. string.gsub(string.gsub(val.stdout, '\r', '\\N'), '\n', '\\N')
+        state.localDescriptionClick = state.localDescriptionClick:sub(1, #state.localDescriptionClick - 2)
 
         -- check if description exists, if it doesn't get rid of the extra "----------"
         local descriptionText = state.localDescriptionClick:match("\\N----------\\N(.-)\\N----------\\N")
@@ -1587,23 +1420,8 @@ function exec_description(args, result)
             state.localDescriptionClick = state.localDescriptionClick:gsub("Uploader: <$\\N!uploader!\\N$>", "Uploader: ")
         end
 
-        if (state.localDescriptionClick:match('Views: (%d+)')) then
-            state.localDescriptionClick = state.localDescriptionClick:gsub(state.localDescriptionClick:match('Views: (%d+)'), commas(state.localDescriptionClick:match('Views: (%d+)')))
-        end
-        if (state.localDescriptionClick:match('Likes: (%d+)')) then
-            state.localDescriptionClick = state.localDescriptionClick:gsub(state.localDescriptionClick:match('Likes: (%d+)'), commas(state.localDescriptionClick:match('Likes: (%d+)')))
-        end
-        if (state.localDescriptionClick:match('Comments: (%d+)')) then
-            state.localDescriptionClick = state.localDescriptionClick:gsub(state.localDescriptionClick:match('Comments: (%d+)'), commas(state.localDescriptionClick:match('Comments: (%d+)')))
-        end
-
         state.localDescriptionClick = state.localDescriptionClick:gsub("Uploader: NA\\N", "")
         state.localDescriptionClick = state.localDescriptionClick:gsub("Uploaded: NA\\N", "")
-        state.localDescriptionClick = state.localDescriptionClick:gsub("Views: NA\\N", "")
-        state.localDescriptionClick = state.localDescriptionClick:gsub("Comments: NA\\N", "")
-        state.localDescriptionClick = state.localDescriptionClick:gsub("Likes: NA\\N", "")
-        state.localDescriptionClick = state.localDescriptionClick:gsub("Likes: NA", "")
-        state.localDescriptionClick = state.localDescriptionClick:gsub("Dislikes: NA\\N", "")
         -- state.localDescriptionClick = state.localDescriptionClick:gsub("NA", "")
 
         local utf8split, lastchar = splitUTF8(state.ytdescription, maxdescsize) -- account for CJK
@@ -1630,7 +1448,6 @@ function exec_description(args, result)
                     end
                 end
 
-                afterLastPattern = afterLastPattern:gsub("Views:", icons.emoticon.view):gsub("Comments:", icons.emoticon.comment):gsub("Likes:", icons.emoticon.like):gsub("Dislikes:", icons.emoticon.dislike)  -- replace with icons
                 tempDesc = desc  .. "\\N----------\\N" .. afterLastPattern:gsub("\\N", " | ")            
                 tempDesc = tempDesc:gsub("\\N----------\\N", " | ")
             else
@@ -1651,65 +1468,6 @@ function exec_description(args, result)
         end
         msg.info("WEB: Loaded video description")
     end)
-end
-
-function exec_dislikes(args, result)
-    local ret = mp.command_native_async({
-        name = "subprocess",
-        args = args,
-        capture_stdout = true,
-        capture_stderr = true
-    }, function(res, val, err)
-        local dislikes = val.stdout
-        dislikes = commas(dislikes:match('"dislikes":(%d+)'))
-        state.dislikecount = dislikes
-
-        if dislikes then
-            state.dislikes = "Dislikes: " .. dislikes
-            msg.info("WEB: Fetched dislike count")
-        else
-            state.dislikes = ""
-        end
-
-        if (not state.descriptionLoaded) then
-            if state.localDescriptionClick then
-                state.localDescriptionClick = state.localDescriptionClick .. '\\N' .. state.dislikes
-            else
-                state.localDescriptionClick = state.dislikes
-            end
-            state.videoDescription = state.localDescriptionClick
-        else
-            addLikeCountToTitle()
-        end
-    end)
-end
-
-function commas(number)
-    if number == nil then return '' end
-
-    return tostring(number) -- Make sure the "number" is a string
-       :reverse() -- Reverse the string
-       :gsub('%d%d%d', '%0,') -- insert one comma after every 3 numbers
-       :gsub(',$', '') -- Remove a trailing comma if present
-       :reverse() -- Reverse the string again
-       :sub(1) -- a little hack to get rid of the second return value 😜
- end
-
-function addLikeCountToTitle()
-    if (user_opts.showdescription and user_opts.updatetitleyoutubestats) then
-        state.viewcount = commas(state.localDescriptionClick:match('Views: (%d+)')) 
-        state.likecount = commas(state.localDescriptionClick:match('Likes: (%d+)'))
-        if (state.viewcount ~= '' and state.likecount ~= '' and state.dislikecount) then
-            mp.set_property("title", mp.get_property("media-title") .. 
-            " | " .. icons.emoticon.view .. state.viewcount .. 
-            " | " .. icons.emoticon.like .. state.likecount .. 
-            " | " .. icons.emoticon.dislike .. state.dislikecount)
-        elseif (state.viewcount ~= '' and state.likecount ~= '') then
-            mp.set_property("title", mp.get_property("media-title") .. 
-            " | " .. icons.emoticon.view .. state.viewcount .. 
-            " | " .. icons.emoticon.like .. state.likecount)
-        end    
-    end
 end
 
 function format_file_size(file_size)
@@ -1845,8 +1603,6 @@ function destroyscrollingkeys()
     unbind_keys("DOWN WHEEL_DOWN", "move_down")
     unbind_keys("ENTER MBTN_LEFT", "select")
     unbind_keys("ESC MBTN_RIGHT", "close")
-    unbind_keys("LEFT", "comments_left")
-    unbind_keys("RIGHT", "comments_right")
 end
 
 function checkDesc()
@@ -1871,18 +1627,6 @@ end
 
 function show_description(text)
     duration = 10
-    if (state.isWebVideo and user_opts.showyoutubecomments) then
-        if (state.commentsParsed and user_opts.showyoutubecomments) then
-            local pageText = "pages"
-            if state.maxCommentPages == 1 then
-                pageText = "page"
-            end
-            state.commentsAdditionalText = '\\N----------\\NPress LEFT/RIGHT to view comments\\N' .. state.maxCommentPages .. ' ' .. pageText .. ' (' .. #state.jsoncomments .. ' comments)'
-            text = text .. state.commentsAdditionalText
-        else
-            text = text .. '\\N----------\\NComments loading...'
-        end
-    end
     text = string.gsub(text, '\n', '\\N')
 
     -- enable scrolling of menu --
@@ -1901,61 +1645,8 @@ function show_description(text)
     end, { repeatable = true })
     bind_keys("ENTER", "select", destroyscrollingkeys)
     bind_keys("ESC", "close", function()
-        if (state.commentsPage > 0) then
-            state.commentsPage = 0
-            state.message_text = state.localDescriptionClick .. state.commentsAdditionalText
-            resetDescTimer()
-            request_tick()
-            state.scrolledlines = 25
-        else
-            destroyscrollingkeys()
-        end
+        destroyscrollingkeys()
     end) -- close menu using ESC
-
-    local function returnMessageText()
-        local totalCommentCount = #state.jsoncomments
-        local firstCommentCount = (state.commentsPage - 1) * commentsperpage + 1
-        local lastCommentCount = (state.commentsPage) * commentsperpage
-        if lastCommentCount > totalCommentCount then
-            lastCommentCount = totalCommentCount
-        end
-        loadSetOfComments(firstCommentCount)
-        return 'Comments\\NPage ' .. state.commentsPage .. '/' .. state.maxCommentPages .. ' (' .. firstCommentCount .. '/' .. #state.jsoncomments .. ')\\N----------' .. state.commentDescription:gsub('\n', '\\N') ..  '\\N----------\\NEnd of page\\NPage ' .. state.commentsPage .. '/' .. state.maxCommentPages .. ' (' .. lastCommentCount .. '/' .. totalCommentCount .. ')'
-    end
-    
-    state.commentsPage = 0
-    if (state.isWebVideo and user_opts.showyoutubecomments) then
-        bind_keys("LEFT", "comments_left", function() 
-            if (state.commentsParsed) then
-                state.commentsPage = state.commentsPage - 1
-                if (state.commentsPage == 0) then
-                    state.message_text = state.localDescriptionClick .. state.commentsAdditionalText
-                elseif (state.commentsPage > 0) then
-                    state.message_text = returnMessageText()
-                else
-                    state.commentsPage = state.maxCommentPages
-                    state.message_text = returnMessageText()
-                end
-                state.scrolledlines = 25
-            end
-            resetDescTimer()
-            request_tick()
-        end)
-        bind_keys("RIGHT", "comments_right", function() 
-            if (state.commentsParsed) then
-                state.commentsPage = state.commentsPage + 1
-                if (state.commentsPage > state.maxCommentPages) then
-                    state.commentsPage = 0
-                    state.message_text = state.localDescriptionClick .. state.commentsAdditionalText
-                else
-                    state.message_text = returnMessageText()
-                end
-                state.scrolledlines = 25
-            end
-            resetDescTimer()
-            request_tick()
-        end)
-    end
 
     state.message_text = text
 
@@ -2078,10 +1769,10 @@ end
 function window_controls()
     local wc_geo = {
         x = 0,
-        y = 30,
+        y = 40,
         an = 1,
         w = osc_param.playresx,
-        h = 30
+        h = 40
     }
 
     local controlbox_w = window_control_box_width
@@ -2134,7 +1825,7 @@ function window_controls()
             return titleval
         end
         lo = add_layout('windowtitle')
-        geo = {x = 10, y = button_y + 10, an = 1, w = osc_param.playresx - 50, h = wc_geo.h}
+        geo = {x = 15, y = button_y + 15, an = 1, w = osc_param.playresx - 50, h = wc_geo.h}
         lo.geometry = geo
         lo.style = osc_styles.WindowTitle
         lo.button.maxchars = geo.w / 10
@@ -2144,7 +1835,7 @@ function window_controls()
     ne = new_element('close', 'button')
     ne.content = '\238\132\149'
     ne.eventresponder['mbtn_left_up'] =
-        function () mp.commandv('quit') end
+        function () mp.commandv('script-message', 'eof-replay') end
     lo = add_layout('close')
     lo.geometry = third_geo
     lo.style = osc_styles.WinCtrl
@@ -2234,14 +1925,14 @@ layouts = function ()
     -- Seekbar
     new_element('seekbarbg', 'box')
     lo = add_layout('seekbarbg')
-    lo.geometry = {x = refX , y = refY - 100, an = 5, w = osc_geo.w - 50, h = 2}
+    lo.geometry = {x = refX , y = refY - 106, an = 5, w = osc_geo.w - 50, h = 4}
     lo.layer = 13
     lo.style = osc_styles.SeekbarBg
     lo.alpha[1] = 128
     lo.alpha[3] = 128
 
     lo = add_layout('seekbar')
-    lo.geometry = {x = refX, y = refY - 100, an = 5, w = osc_geo.w - 50, h = 16}
+    lo.geometry = {x = refX, y = refY - 106, an = 5, w = osc_geo.w - 50, h = 18}
     lo.style = osc_styles.SeekbarFg
     lo.slider.gap = 7
     lo.slider.tooltip_style = osc_styles.Tooltip
@@ -2292,13 +1983,13 @@ layouts = function ()
     lo = new_element('volumebarbg', 'box')
     lo.visible = (osc_param.playresx >= 900 - outeroffset) and user_opts.volumecontrol
     lo = add_layout('volumebarbg')
-    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 2}
+    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 4}
     lo.layer = 13
     lo.alpha[1] = 128
     lo.style = osc_styles.VolumebarBg
     
     lo = add_layout('volumebar')
-    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 8}
+    lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 10}
     lo.style = osc_styles.VolumebarFg
     lo.slider.gap = 3
     lo.slider.tooltip_style = osc_styles.Tooltip
@@ -2353,11 +2044,11 @@ layouts = function ()
 
     -- Time
     lo = add_layout('tc_left')
-    lo.geometry = {x = 25, y = refY - 84, an = 7, w = 100, h = 20}
+    lo.geometry = {x = 25, y = refY - 94, an = 7, w = 100, h = 20}
     lo.style = osc_styles.Time
         
     lo = add_layout('tc_right')
-    lo.geometry = {x = osc_geo.w - 25 , y = refY -84, an = 9, w = 100, h = 20}
+    lo.geometry = {x = osc_geo.w - 25 , y = refY -94, an = 9, w = 100, h = 20}
     lo.style = osc_styles.Time
 
     -- Audio/Subtitle
@@ -2372,9 +2063,15 @@ layouts = function ()
     lo.visible = (osc_param.playresx >= 600 - outeroffset)
 
     lo = add_layout('vol_ctrl')
-    lo.geometry = {x = 127, y = refY - 40, an = 5, w = 24, h = 24}
+    lo.geometry = {x = 130, y = refY - 40, an = 5, w = 24, h = 24}
     lo.style = osc_styles.Ctrl3
     lo.visible = (osc_param.playresx >= 700 - outeroffset)
+
+    -- Volume Value
+    lo = add_layout('vol_value')
+    lo.geometry = {x = 250, y = refY - 40, an = 4, w = 20, h = 20}
+    lo.style = osc_styles.VolumeValue
+    lo.visible = (osc_param.playresx >= 900 - outeroffset) and user_opts.volumecontrol
 
     -- Fullscreen/Loop/Info
     lo = add_layout('tog_fs')
@@ -2800,8 +2497,6 @@ function osc_init()
     ne.eventresponder['shift+mbtn_right_down'] =
         function () show_message(get_tracklist('sub')) end
     
-    
-
     -- vol_ctrl
     ne = new_element('vol_ctrl', 'button')
     ne.enabled = (get_track('audio')>0)
@@ -2820,6 +2515,15 @@ function osc_init()
             end
         end
     end
+    ne.tooltip_style = osc_styles.Tooltip
+    ne.tooltipF = function ()
+		local msg = texts.mute
+        if (state.mute) then
+            msg = texts.unmute
+        end
+        return msg
+    end
+    ne.nothingavailable = texts.noaudio
     ne.eventresponder['mbtn_left_up'] =
         function () 
             mp.commandv('cycle', 'mute')
@@ -2839,6 +2543,14 @@ function osc_init()
     ne = new_element('tog_fs', 'button')
     ne.content = function () return state.fullscreen and icons.fullscreen_exit or icons.fullscreen end
     ne.visible = (osc_param.playresx >= 250)
+    ne.tooltip_style = osc_styles.Tooltip
+    ne.tooltipF = function ()
+        local msg = texts.fullscreen
+        if (state.fullscreen) then
+            msg = texts.exitfullscreen
+        end
+        return msg
+    end
     ne.eventresponder['mbtn_left_up'] =
         function () mp.commandv('cycle', 'fullscreen') end
 
@@ -2879,7 +2591,7 @@ function osc_init()
     ne.tooltip_style = osc_styles.Tooltip
     ne.tooltipF = function ()
         local msg = state.fileSizeNormalised
-        if (state.downloading)then
+        if (state.downloading) then
             msg = "Downloading..."
         end
         return msg
@@ -3221,6 +2933,12 @@ function osc_init()
         function () mp.commandv("osd-auto", "add", "volume", 5) end
     ne.eventresponder["wheel_down_press"] =
         function () mp.commandv("osd-auto", "add", "volume", -5) end
+
+    -- volumevalue
+    ne = new_element('vol_value', 'button')
+    ne.content = function ()
+        return tostring(mp.get_property_number('volume'))
+    end
     
     -- Helper function to format time
     function format_time(seconds, dontincludems)
@@ -3731,7 +3449,7 @@ function tick()
             ass:new_event()
             ass:pos(display_w / 2, icon_y + 65)
             ass:an(8)
-            ass:append("{\\fs24\\1c&H0&\\1c&HFFFFFF&}" .. texts.welcome)
+            ass:append("{\\fs22\\1c&H0&\\1c&HFFFFFF&}" .. texts.welcome)
         end
         set_osd(display_w, display_h, ass.text)
 
@@ -3831,16 +3549,29 @@ if user_opts.keybindings then
     end
 
     -- extra key bindings
-    mp.add_key_binding("x", "cycleaudiotracks", function()
+    mp.add_key_binding("u", "cyclevideotracks", function()
+        set_track('video', 1) show_message(get_tracklist('video'))
+    end);
+    mp.add_key_binding("U", "cyclevideotracksbackwards", function()
+        set_track('video', -1) show_message(get_tracklist('video'))
+    end);
+    
+    mp.add_key_binding("j", "cycleaudiotracks", function()
         set_track('audio', 1) show_message(get_tracklist('audio'))
     end);
+    mp.add_key_binding("J", "cycleaudiotracksbackwards", function()
+        set_track('audio', -1) show_message(get_tracklist('audio'))
+    end);
 
-    mp.add_key_binding("c", "cyclecaptions", function()
+    mp.add_key_binding("n", "cyclecaptions", function()
         set_track('sub', 1) show_message(get_tracklist('sub'))
+    end);
+    mp.add_key_binding("N", "cyclecaptionsbackwards", function()
+        set_track('sub', -1) show_message(get_tracklist('sub'))
     end);
 
     if (user_opts.persistentprogresstoggle) then
-        mp.add_key_binding("b", "persistenttoggle", function()
+        mp.add_key_binding("O", "persistenttoggle", function()
             state.persistentprogresstoggle = not state.persistentprogresstoggle
             tick()
             print("Persistent progress bar toggled")
@@ -3866,7 +3597,13 @@ if user_opts.keybindings then
         end
     end);
 
-    mp.add_key_binding(nil, 'show_osc', function() show_osc() end)
+    mp.add_key_binding("ESC", 'toggle_osc', function()
+        if (state.osc_visible == false) then
+            show_osc()
+            return
+        end
+        hide_osc()
+    end);
 end
 
 mp.observe_property('fullscreen', 'bool',
@@ -3920,6 +3657,7 @@ mp.observe_property('osd-dimensions', 'native', function(name, val)
     --  we might have to worry about property update ordering)
     request_init_resize()
 end)
+
 -- mouse show/hide bindings
 mp.set_key_bindings({
     {'mouse_move',              function(e) process_event('mouse_move', nil) end},
@@ -3991,8 +3729,6 @@ mp.register_script_message("thumbfast-info", function(json)
     end
 end)
 
--- read options from config and command-line
-opt.read_options(user_opts, 'modernx', function(list) update_options(list) end)
 set_virt_mouse_area(0, 0, 0, 0, 'input')
 set_virt_mouse_area(0, 0, 0, 0, 'window-controls')
 mp.set_property("title", "mpv")
