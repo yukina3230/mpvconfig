@@ -33,14 +33,10 @@ local function normaliseDate(date) end
 local function exec_async() end
 local function is_url() end
 local function check_path_url() end
-local function check_comments() end
-local function loadSetOfComments() end
 local function process_filesize() end
 local function splitUTF8(str, maxLength) end
 local function process_vid_stats() end
-local function process_dislikes() end
 local function add_commas_to_number() end
-local function addLikeCountToTitle() end
 local function get_playlist() end
 local function get_chapterlist() end
 local function show_message(text, duration) end
@@ -107,7 +103,8 @@ local user_opts = {
     title_font_size = 28,                   -- font size of the title text (above seekbar)
     dynamic_title = true,                   -- change title if {media-title} and {filename} differ (eg: when playing URLs or audio)
 
-    show_chapter_title = true,              -- show chapter title alongside timestamp (below seekbar)
+    show_chapter_title = true,              -- show chapter title alongside timestamp
+    chapter_title_font_size = 20,           -- font size of the title text (above seekbar)
     chapter_fmt = "%s",                     -- format for chapter display on seekbar hover (set to "no" to disable)
     show_chapter_markers = false,           -- show chapter markers on the seekbar
 
@@ -116,6 +113,8 @@ local user_opts = {
     unicode_minus = false,                  -- use the Unicode minus sign in remaining time
     time_format = "dynamic",                -- "dynamic" or "fixed" - dynamic shows MM:SS when possible, fixed always shows HH:MM:SS
     time_font_size = 18,                    -- font size of the time display
+    tooltip_font_size = 18,                 -- font size of the tooltip
+    volume_font_size = 18,                  -- font size of the volume
 
     show_description = true,                -- show video description - description on web videos or metadata/stats on local video
     show_file_size = true,                  -- show the current file's size in the description
@@ -127,6 +126,7 @@ local user_opts = {
 
     -- Title bar settings
     window_title = true,                    -- show window title in borderless/fullscreen mode
+    window_title_font_size = 22,            -- font size of the window title text
     window_controls = true,                 -- show window controls (close, minimize, maximize) in borderless/fullscreen
     title_bar_box = false,                  -- show title bar as a box instead of a black fade
     window_controls_title = "${media-title}", -- same as title but for window_controls
@@ -166,6 +166,7 @@ local user_opts = {
     playpause_size = 30,                    -- icon size for the play/pause button
     midbuttons_size = 24,                   -- icon size for the middle buttons
     sidebuttons_size = 24,                  -- icon size for the side buttons
+    window_controls_size = 20,              -- icon size for the window controls buttons
 
     -- Colors and style
     osc_color = "#000000",                  -- accent color of the OSC and title bar
@@ -179,7 +180,10 @@ local user_opts = {
     seekbar_cache_color = "#1D96F5",        -- color of the cache ranges on the seekbar
     volumebar_match_seek_color = false,     -- match volume bar color with seekbar color (ignores side_buttons_color)
     time_color = "#FFFFFF",                 -- color of the timestamps (below seekbar)
-    chapter_title_color = "#FFFFFF",        -- color of the chapter title next to timestamp (below seekbar)
+    chapter_title_color = "#FFFFFF",        -- color of the chapter title next to timestamp
+    description_color = "#FFFFFF",          -- color of the description
+    tooltip_color = "#FFFFFF",              -- color of the tooltip
+    volume_color = "#FFFFFF",               -- color of the volume
     side_buttons_color = "#FFFFFF",         -- color of the side buttons (audio, subtitles, playlist, etc.)
     middle_buttons_color = "#FFFFFF",       -- color of the middle buttons (skip, jump, chapter, etc.)
     playpause_color = "#FFFFFF",            -- color of the play/pause button
@@ -220,34 +224,6 @@ local user_opts = {
     -- Web videos
     title_youtube_stats = true,             -- update the window/OSC title bar with YouTube video stats (views, likes, dislikes)
     ytdl_format = "",                       -- optional parameteres for yt-dlp downloading, eg: '-f bestvideo+bestaudio/best'
-
-    -- sponsorblock features need https://github.com/zydezu/mpvconfig/blob/main/scripts/sponsorblock.lua to work!
-    show_sponsorblock_segments = true,      -- show sponsorblock segments on the progress bar
-    add_sponsorblock_chapters = false,      -- add sponsorblock chapters to the chapter list
-    sponsorblock_seek_range_alpha = 75,     -- transparency of sponsorblock segments
-    sponsor_types = {                       -- what categories to show in the progress bar
-        "sponsor",                          -- all categories: 
-        "intro",                            --      sponsor, intro, outro, 
-        "outro",                            --      interaction, selfpromo, preview, 
-        "interaction",                      --      music_offtopic, filler
-        "selfpromo",
-        "preview",
-        "music_offtopic",
-        "filler"
-    },
-    sponsorblock_sponsor_color = "#00D400", -- color for sponsors
-    sponsorblock_intro_color = "#00FFFF",   -- color for intermission/intro animations
-    sponsorblock_outro_color = "#0202ED",   -- color for endcards/credits
-    sponsorblock_interaction_color = "#CC00FF", -- color for interaction reminders (reminders to subscribe)
-    sponsorblock_selfpromo_color = "#FFFF00", -- color for unpaid/self promotion
-    sponsorblock_preview_color = "#008FD6", -- color for unpaid/self promotion
-    sponsorblock_music_offtopic_color = "#FF9900", -- color for unpaid/self promotion
-    sponsorblock_filler_color = "#7300FF",  -- color for filler tangent/jokes
-
-    -- Experimental
-    show_youtube_comments = false,          -- EXPERIMENTAL - show youtube comments
-    comments_download_path = "~~desktop/mpv/downloads/comments", -- EXPERIMENTAL - the download path for the comment JSON file
-    FORCE_fix_not_ontop = true,             -- EXPERIMENTAL - try and mitigate https://github.com/zydezu/ModernX/issues/30, https://github.com/akiirui/mpv-handler/issues/48
 }
 -- read options from config and command-line
 require("mp.options").read_options(user_opts, 'modernx', function(list) update_options(list) end)
@@ -263,44 +239,37 @@ local osc_param = {                         -- calculated by osc_init()
 }
 
 local icons = {
-    play = "\238\166\143",
-    pause = "\238\163\140",
-    replay = "\238\189\191",
-    previous = "\239\152\167",
-    next = "\239\149\168",
-    rewind = "\238\168\158",
-    forward = "\238\152\135",
+    play = "\238\128\183",
+    pause = "\238\128\180",
+    replay = "\238\129\130",
+    previous = "\238\129\133",
+    next = "\238\129\132",
+    rewind = "\238\128\160",
+    forward = "\238\128\159",
 
-    audio = "\238\175\139",
-    subtitle = "\238\175\141",
-    volume_mute = "\238\173\138",
-    volume_quiet = "\238\172\184",
-    volume_low = "\238\172\189",
-    volume_high = "\238\173\130",
+    audio = "\238\129\137",
+    subtitle = "\238\129\136",
+    volume_mute = "\238\129\143",
+    volume_quiet = "\238\129\142",
+    volume_low = "\238\129\141",
+    volume_high = "\238\129\144",
 
-    download = "\239\133\144",
-    downloading = "\239\140\174",
-    loop_off = "\239\133\178",
-    loop_on = "\239\133\181",
-    info = "\239\146\164",
-    ontop_on = "\238\165\190",
-    ontop_off = "\238\166\129",
-    screenshot = "\239\154\142",
-    fullscreen = "\239\133\160",
-    fullscreen_exit = "\239\133\166",
+    download = "\239\134\129",
+    downloading = "\239\128\129",
+    loop_off = "\238\129\128",
+    loop_on = "\238\129\129",
+    info = "\238\162\143",
+    ontop_on = "\238\162\131",
+    ontop_off = "\238\162\130",
+    screenshot = "\238\143\156",
+    fullscreen = "\238\151\144",
+    fullscreen_exit = "\238\151\145",
 
     jumpicons = {
-        [5] = {"\238\171\186", "\238\171\187"},
-        [10] = {"\238\171\188", "\238\172\129"},
-        [30] = {"\238\172\133", "\238\172\134"},
-        default = {"\238\172\138", "\238\172\138"}, -- second icon is mirrored in layout() 
-    },
-
-    emoticon = {
-        view = "👁️",
-        comment = "💬",
-        like = "👍",
-        dislike = "👎"
+        [5] = {"\238\129\155", "\238\129\152"},
+        [10] = {"\238\129\153", "\238\129\150"},
+        [30] = {"\238\129\154", "\238\129\151"},
+        default = {"\238\129\130", "\238\129\130"}, -- second icon is mirrored in layout()
     },
 
     playlist = "\238\161\159", -- unused rn
@@ -333,6 +302,10 @@ local language = {
         download_in_progress = "Download in progress",
         downloading = "Downloading",
         downloaded = "Already downloaded",
+        mute = 'Mute',
+        unmute = 'Unmute',
+        fullscreen = 'Fullscreen',
+        exitfullscreen = 'Exit fullscreen',
     }
 }
 
@@ -378,26 +351,12 @@ local thumbfast = {
     available = false
 }
 
-local sponsorblock_color_map = {
-    sponsor = user_opts.sponsorblock_sponsor_color,
-    intro = user_opts.sponsorblock_intro_color,
-    outro = user_opts.sponsorblock_outro_color,
-    interaction = user_opts.sponsorblock_interaction_color,
-    selfpromo = user_opts.sponsorblock_selfpromo_color,
-    preview = user_opts.sponsorblock_preview_color,
-    music_offtopic = user_opts.sponsorblock_music_offtopic_color,
-    filler = user_opts.sponsorblock_filler_color
-}
-
 local tick_delay = 1 / 60 -- 60FPS
-local audio_track_count = 0 -- TODO: implement
-local sub_track_count = 0 -- TODO: implement
 local window_control_box_width = 138
 local max_descsize = 125
-local comments_per_page = 25
 local is_december = os.date("*t").month == 12
 local UNICODE_MINUS = string.char(0xe2, 0x88, 0x92)  -- UTF-8 for U+2212 MINUS SIGN
-local iconfont = 'fluent-system-icons'
+local iconfont = 'MaterialIconsRound-Regular'
 
 local function osc_color_convert(color)
     return color:sub(6,7) .. color:sub(4,5) ..  color:sub(2,3)
@@ -406,11 +365,12 @@ end
 local playpause_size = user_opts.playpause_size or 30
 local midbuttons_size = user_opts.midbuttons_size or 24
 local sidebuttons_size = user_opts.sidebuttons_size or 24
+local window_controls_size = user_opts.window_controls_size or 20
 local osc_styles = {
     background_bar = "{\\1c&H" .. osc_color_convert(user_opts.osc_color) .. "&}",
     box_bg = "{\\blur" .. user_opts.fade_blur_strength .. "\\bord" .. user_opts.fade_alpha .. "\\1c&H000000&\\3c&H" .. osc_color_convert(user_opts.osc_color) .. "&}",
     title_bar_box_bg = "{\\blur" .. user_opts.title_bar_fade_blur_strength .. "\\bord" .. user_opts.title_bar_fade_alpha .. "\\1c&H000000&\\3c&H" .. osc_color_convert(user_opts.osc_color) .. "&}",
-    chapter_title = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.chapter_title_color) .. "&\\3c&H000000&\\fs" .. user_opts.time_font_size .. "\\fn" .. user_opts.font .. "}",
+    chapter_title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.chapter_title_color) .. "&\\3c&H000000&\\fs" .. user_opts.chapter_title_font_size .. "\\fn" .. user_opts.font .. "}",
     control_1 = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.playpause_color) .. "&\\3c&HFFFFFF&\\fs" .. playpause_size .. "\\fn" .. iconfont .. "}",
     control_2 = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.middle_buttons_color) .. "&\\3c&HFFFFFF&\\fs" .. midbuttons_size .. "\\fn" .. iconfont .. "}",
     control_2_flip = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.middle_buttons_color) .. "&\\3c&HFFFFFF&\\fs" .. midbuttons_size .. "\\fn" .. iconfont .. "\\fry180}",
@@ -419,15 +379,16 @@ local osc_styles = {
     element_hover = "{" .. (contains(user_opts.hover_effect, "color") and "\\1c&H" .. osc_color_convert(user_opts.hover_effect_color) .. "&" or "") .."\\2c&HFFFFFF&" .. (contains(user_opts.hover_effect, "size") and string.format("\\fscx%s\\fscy%s", user_opts.hover_button_size, user_opts.hover_button_size) or "") .. "}",
     seekbar_bg = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.seekbarbg_color) .. "&}",
     seekbar_fg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.seekbarfg_color) .. "&}",
-    thumbnail = "{\\blur0\\bord1\\1c&H" .. osc_color_convert(user_opts.thumbnail_border_color) .. "&\\3c&H" .. osc_color_convert(user_opts.thumbnail_border_outline) .. "&}",
-    time = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.time_color) .. "&\\3c&H000000&\\fs" .. user_opts.time_font_size .. "\\fn" .. user_opts.font .. "}",
-    title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.title_color) .. "&\\3c&H0&\\fs".. user_opts.title_font_size .."\\q2\\fn" .. user_opts.font .. "}",
-    tooltip = "{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs" .. user_opts.time_font_size .. "\\fn" .. user_opts.font .. "}",
+    thumbnail = "{\\blur0\\bord1\\1c&H" .. osc_color_convert(user_opts.thumbnail_border_color) .. "&\\c&HFFFFFF&\\fs" .. osc_color_convert(user_opts.thumbnail_border_outline) .. "&}",
+    time = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.time_color) .. "&\\3c&H000000&\\fs" .. user_opts.time_font_size .. "\\fn" .. user_opts.font .. "}",
+    title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.title_color) .. "&\\3c&H000000&\\fs" .. user_opts.title_font_size .. "\\fn" .. user_opts.font .. "}",
+    tooltip = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.tooltip_color) .. "&\\3c&H000000&\\fs" .. user_opts.tooltip_font_size .. "\\fn" .. user_opts.font .. "}",
+    volume = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.volume_color) .. "&\\3c&H000000&\\fs" .. user_opts.volume_font_size .. "\\fn" .. user_opts.font .. "}",
     volumebar_bg = "{\\blur0\\bord0\\1c&H999999&}",
     volumebar_fg = "{\\blur1\\bord1\\1c&H" .. osc_color_convert(user_opts.side_buttons_color) .. "&}",
-    window_control = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.window_controls_color) .. "&\\3c&H0&\\fs20\\fnmpv-osd-symbols}",
-    window_title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.window_title_color) .. "&\\3c&H0&\\fs20\\q2\\fn" .. user_opts.font .. "}",
-    description = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs'.. user_opts.description_font_size ..'\\q2\\fn' .. user_opts.font .. '}',
+    window_control = "{\\blur0\\bord0\\1c&H" .. osc_color_convert(user_opts.window_controls_color) .. "&\\3c&HFFFFFF&\\fs" .. window_controls_size .. "\\fn" .. iconfont .. "}",
+    window_title = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.window_title_color) .. "&\\3c&H000000&\\fs" .. user_opts.window_title_font_size .. "\\fn" .. user_opts.font .. "}",
+    description = "{\\blur1\\bord0.5\\1c&H" .. osc_color_convert(user_opts.description_color) .. "&\\3c&H000000&\\fs" .. user_opts.description_font_size .. "\\fn" .. user_opts.font .. "}",
 }
 
 -- internal states, do not touch
@@ -488,16 +449,7 @@ local state = {
     showingDescription = false,
     scrolledlines = 25,
     youtubeuploader = "",
-    jsoncomments= {},
-    youtubecomments = {},
-    commentsParsed = false,
-    currentCommentIndex = 0,
-    commentsPage = 0,
-    maxCommentPages = 0,
-    commentsAdditionalText = "",
     is_live = false,
-
-    sponsor_segments = {},
 
     message_text = nil, -- TODO: needs to be removed
     message_hide_timer = nil, -- TODO: needs to be removed
@@ -1071,43 +1023,6 @@ local function draw_seekbar_ranges(element, elem_ass, xp, rh, override_alpha)
     end
 end
 
-local function draw_sponsorblock_ranges(element, elem_ass, xp, rh)
-    local function set_draw_color(color, value, slider_lo, elem_geo)
-        elem_ass:draw_stop()
-        elem_ass:merge(element.style_ass)
-        ass_append_alpha(elem_ass, element.layout.alpha, user_opts.sponsorblock_seek_range_alpha)
-        elem_ass:append("{\\1cH&" .. osc_color_convert(color) .. "&}")
-        elem_ass:merge(element.static_ass)
-
-        for _, range in pairs(value) do
-            local pstart = get_slider_ele_pos_for(element, range["start"])
-            local pend = get_slider_ele_pos_for(element, range["end"])
-            elem_ass:rect_cw(pstart - rh, slider_lo.gap, pend + rh, elem_geo.h - slider_lo.gap)
-        end
-    end
-
-    if not user_opts.show_sponsorblock_segments then
-        return
-    end
-
-    local handle = xp and rh
-    xp = xp or 0
-    rh = rh or 0
-    local slider_lo = element.layout.slider
-    local elem_geo = element.layout.geometry
-
-    local temp = elem_ass
-
-    for key, value in pairs(state.sponsor_segments) do
-        elem_ass = temp
-
-        local color = sponsorblock_color_map[key]
-        if color then
-            set_draw_color(color, value, slider_lo, elem_geo)
-        end
-    end
-end
-
 function render_elements(master_ass)
     -- when the slider is dragged or hovered and we have a target chapter name
     -- then we use it instead of the normal title. we calculate it before the
@@ -1172,7 +1087,6 @@ function render_elements(master_ass)
                 draw_seekbar_progress(element, elem_ass)
                 if element.name == "seekbar" then
                     draw_seekbar_ranges(element, elem_ass, xp, rh)
-                    draw_sponsorblock_ranges(element, elem_ass, xp, rh)
                 end
 
                 elem_ass:draw_stop()
@@ -1501,7 +1415,7 @@ function checktitle()
     state.ytdescription = ""
     state.youtubeuploader = artist
 
-    local metadata = mp.get_property_native('metadata')
+    local metadata = mp.get_property_native("metadata")
     print(dumptable(metadata))
     if metadata then
         state.ytdescription = metadata.ytdl_description or description or ""
@@ -1638,12 +1552,6 @@ function check_path_url()
     state.is_URL = false
     state.downloading = false
 
-    state.youtubecomments = {}
-    state.commentsParsed = false
-    state.currentCommentIndex = 0
-    state.commentsPage = 0
-    state.maxCommentPages = 0
-
     local path = mp.get_property("path")
     if not path then return nil end
 
@@ -1670,168 +1578,15 @@ function check_path_url()
             exec_async(command, process_filesize)
         end
 
-        -- Youtube Return Dislike API
-        state.dislikes = ""
-        if path:find('youtu%.?be') and (user_opts.show_description or user_opts.title_youtube_stats) then
-            mp.msg.info("[WEB] Loading dislike count...")
-            local filename = mp.get_property_osd("filename")
-            local pattern = "v=([^&]+)"
-            local match = string.match(filename, pattern)
-            if match then
-                exec_async({"curl","https://returnyoutubedislikeapi.com/votes?videoId=" .. match}, process_dislikes)
-            else
-                local _, _, videoID = string.find(filename, "([%w_-]+)%?si=")
-                if videoID then
-                    exec_async({"curl","https://returnyoutubedislikeapi.com/votes?videoId=" .. videoID}, process_dislikes)
-                else
-                    mp.msg.info("[WEB] Failed to fetch dislikes")
-                end
-            end
-        end
-
         if user_opts.show_description then
             mp.msg.info("[WEB] Loading video description...")
             local command = {
                 "yt-dlp",
                 "--no-download",
-                "-O Views: %(view_count)s\nComments: %(comment_count)s\nLikes: %(like_count)s",
                 state.url_path
             }
             exec_async(command, process_vid_stats)
         end
-
-        if user_opts.show_youtube_comments then
-            mp.msg.info("[WEB] Downloading comments...")
-            check_comments()
-        end
-    end
-end
-
-function check_comments()
-    local function file_exists(file)
-        local f = io.open(file, "rb")
-        if f then f:close() end
-        return f ~= nil
-    end
-
-    local function lines_from(file)
-        if not file_exists(file) then return {} end
-        local lines = {}
-        for line in io.lines(file) do
-            lines[#lines + 1] = line
-        end
-        return lines
-    end
-
-    mp.command_native_async({
-        name = "subprocess",
-        args = {
-            "yt-dlp",
-            "--skip-download",
-            "--write-comments",
-            "-o%(id)s",
-            "-P " .. mp.command_native({"expand-path", user_opts.comments_download_path}),
-            state.url_path
-        },
-        capture_stdout = true,
-        capture_stderr = true
-    }, function(success, result, error)
-        if not success then
-            print("[WEB] Couldn't write youtube comments: " .. error)
-            return
-        end
-
-        local filename = ""
-        if (mp.get_property("filename")) then
-            mp.msg.info("[WEB] Downloaded comments")
-            filename = mp.command_native({"expand-path", user_opts.comments_download_path .. '/'}) .. mp.get_property("filename"):gsub("watch%?v=", ""):match("^[^%?&]+") .. ".info.json"
-        else
-            mp.msg.info("[WEB] Comments failed to download...")
-            return
-        end
-
-        if file_exists(filename) then
-            mp.msg.info("[WEB] Reading comments file...")
-            local lines = lines_from(filename)
-            state.jsoncomments = mp.utils.parse_json(lines[1]).comments
-        else
-            mp.msg.info("[WEB] Error opening comments file")
-            return
-        end
-        state.maxCommentPages = math.ceil(#state.jsoncomments / comments_per_page)
-        if (#state.jsoncomments > 0) then
-            state.commentsParsed = true
-        else
-            user_opts.show_youtube_comments = false -- prevent crash when viewing comments
-        end
-        if state.showingDescription then
-            show_description(state.localDescriptionClick)
-        end
-        mp.msg.info("[WEB] Read and parsed comments")
-    end )
-end
-
-function loadSetOfComments(startIndex)
-    if (#state.jsoncomments < 1) then
-        return
-    end
-
-    state.commentDescription = ""
-    for i=startIndex, #state.jsoncomments do
-        if i > startIndex + (comments_per_page - 1) then
-            state.currentCommentIndex = i
-            break
-        end
-
-        local comment = state.jsoncomments[i]
-        local commentconstruction = comment.author
-
-        local linebreak = ''
-        if (i ~= startIndex) then
-            linebreak = '\\N'
-        end
-        if (comment.parent ~= "root") then
-            commentconstruction = linebreak .. "\\N | " .. commentconstruction  .. " (Replying) | "
-        else
-            if (linebreak == '\\N') then
-                commentconstruction = linebreak .. '-----\\N' .. commentconstruction .. ' | '
-            else
-                commentconstruction = '\\N' .. commentconstruction .. ' | '
-            end
-        end
-
-        if (comment._time_text) then
-            commentconstruction = commentconstruction .. comment._time_text
-        end
-        if (comment.is_favorited) then
-            commentconstruction = commentconstruction .. (comment.is_favorited and ' | Favorited ♡\\N')
-        end
-        if (comment.is_pinned) then
-            commentconstruction = commentconstruction .. (comment.is_pinned and ' | Pinned 📌\\N')
-        else
-            commentconstruction = commentconstruction .. '\\N'
-        end
-
-        local replyPad = ""
-        if (comment.parent ~= "root") then
-            replyPad = " | "
-            commentconstruction = commentconstruction .. replyPad .. comment.text:gsub('\n', '\\N' .. replyPad)
-        else
-            commentconstruction = commentconstruction .. comment.text
-        end
-
-        if (comment.like_count) then
-            local likeText = " likes"
-            if (comment.like_count == 1) then
-                likeText = " like"
-            end
-            commentconstruction = commentconstruction .. '\\N' .. replyPad .. comment.like_count .. likeText
-        else
-            commentconstruction = commentconstruction ..  '\\N' .. replyPad ..  "0 likes"
-        end
-        -- print(commentconstruction)
-        state.youtubecomments[i] = commentconstruction
-        state.commentDescription = state.commentDescription .. commentconstruction
     end
 end
 
@@ -1920,39 +1675,13 @@ function process_vid_stats(success, result, error)
         mp.get_property("media-title", "") ..
         "\\N────────────────────\\N" ..
         string.gsub(
-            string.gsub(result.stdout, '\r', '\\N') ..
-            state.dislikes, '\n', '\\N'
+            string.gsub(result.stdout, '\r', '\\N'), '\n', '\\N'
         ) ..
         "\\N────────────────────\\N" ..
         state.ytdescription
 
-    if (state.dislikes == "") then
-        state.localDescriptionClick = state.localDescriptionClick .. string.gsub(result.stdout, '\r', '\\N'):gsub("\n", "\\N")
-        state.localDescriptionClick = state.localDescriptionClick:sub(1, #state.localDescriptionClick - 2)
-    end
-    addLikeCountToTitle()
-
-    if (state.localDescriptionClick:match('Views: (%d+)')) then
-        state.localDescriptionClick = state.localDescriptionClick:gsub(state.localDescriptionClick:match('Views: (%d+)'), add_commas_to_number(state.localDescriptionClick:match('Views: (%d+)')))
-    end
-    if (state.localDescriptionClick:match('Likes: (%d+)')) then
-        state.localDescriptionClick = state.localDescriptionClick:gsub(state.localDescriptionClick:match('Likes: (%d+)'), add_commas_to_number(state.localDescriptionClick:match('Likes: (%d+)')))
-    end
-    if (state.localDescriptionClick:match('Comments: (%d+)')) then
-        state.localDescriptionClick = state.localDescriptionClick:gsub(state.localDescriptionClick:match('Comments: (%d+)'), add_commas_to_number(state.localDescriptionClick:match('Comments: (%d+)')))
-    end
-
     state.localDescriptionClick = state.localDescriptionClick:gsub("Uploader: NA\\N", "")
     state.localDescriptionClick = state.localDescriptionClick:gsub("Uploaded: NA\\N", "")
-    state.localDescriptionClick = state.localDescriptionClick:gsub("Views: NA\\N", "")
-    state.localDescriptionClick = state.localDescriptionClick:gsub("Comments: NA\\N", "")
-    state.localDescriptionClick = state.localDescriptionClick:gsub("Likes: NA\\N", "")
-    state.localDescriptionClick = state.localDescriptionClick:gsub("Likes: NA", "")
-    state.localDescriptionClick = state.localDescriptionClick:gsub("Dislikes: NA\\N", "")
-
-    if false then
-        state.localDescriptionClick = state.localDescriptionClick:gsub("Views:", icons.emoticon.view):gsub("Comments:", icons.emoticon.comment):gsub("Likes:", icons.emoticon.like):gsub("Dislikes:", icons.emoticon.dislike)  -- replace with icons
-    end
 
     if not state.ytdescription then
         if mp.get_property_number("estimated-vf-fps") then
@@ -1968,34 +1697,6 @@ function process_vid_stats(success, result, error)
     mp.msg.info("[WEB] Loaded video description")
 end
 
-function process_dislikes(success, result, error)
-    if not success then
-        print("[WEB] Couldn't fetch video dislikes: " .. error)
-        return
-    end
-
-    local dislikes = result.stdout
-    dislikes = add_commas_to_number(dislikes:match('"dislikes":(%d+)'))
-    state.dislikecount = dislikes
-
-    if dislikes then
-        state.dislikes = "Dislikes: " .. dislikes
-        mp.msg.info("[WEB] Fetched dislike count")
-    else
-        state.dislikes = ""
-    end
-
-    if (not state.descriptionLoaded) then
-        if state.localDescriptionClick then
-            state.localDescriptionClick = state.localDescriptionClick .. '\\N' .. state.dislikes
-        else
-            state.localDescriptionClick = state.dislikes
-        end
-    else
-        addLikeCountToTitle()
-    end
-end
-
 function add_commas_to_number(number)
     if number == nil then return '' end
 
@@ -2005,23 +1706,6 @@ function add_commas_to_number(number)
        :gsub(',$', '') -- Remove a trailing comma if present
        :reverse() -- Reverse the string again
        :sub(1) -- a little hack to get rid of the second return value
- end
-
-function addLikeCountToTitle()
-    if (user_opts.show_description and user_opts.title_youtube_stats) then
-        state.viewcount = add_commas_to_number(state.localDescriptionClick:match('Views: (%d+)'))
-        state.likecount = add_commas_to_number(state.localDescriptionClick:match('Likes: (%d+)'))
-        if (state.viewcount ~= '' and state.likecount ~= '' and state.dislikecount) then
-            mp.set_property("title", mp.get_property("media-title") ..
-            " | " .. icons.emoticon.view .. state.viewcount ..
-            " | " .. icons.emoticon.like .. state.likecount ..
-            " | " .. icons.emoticon.dislike .. state.dislikecount)
-        elseif (state.viewcount ~= '' and state.likecount ~= '') then
-            mp.set_property("title", mp.get_property("media-title") ..
-            " | " .. icons.emoticon.view .. state.viewcount ..
-            " | " .. icons.emoticon.like .. state.likecount)
-        end
-    end
 end
 
 -- playlist and chapters --
@@ -2063,82 +1747,6 @@ function get_chapterlist()
             (v.current and '●' or '○'), title)
     end
     return message
-end
-
-local function make_sponsorblock_segments()
-    if not user_opts.show_sponsorblock_segments then return end
-    if not state.is_URL then return end
-
-    local sponsor_types = user_opts.sponsor_types
-
-    state.sponsor_segments = {}
-    local temp_segment = {}
-    local is_start_added = false
-    local current_category = ""
-
-    local temp_chapters = mp.get_property_native("chapter-list")
-    local duration = mp.get_property_number('duration', nil)
-
-    if duration then
-        for _, chapter in ipairs(temp_chapters) do
-            
-            print(chapter.title)
-            
-            if chapter.title then
-
-
-                for _, value in ipairs(sponsor_types) do
-                    if string.find(string.lower(chapter.title), value) then
-                        current_category = value
-
-                        if not temp_segment[current_category] then
-                            temp_segment[current_category] = {}
-                        end
-                        if not state.sponsor_segments[current_category] then
-                            state.sponsor_segments[current_category] = {}
-                        end
-                    end
-                end
-
-                if string.find(chapter.title, ("start"):gsub("[%[%]]", "%%%1")) then
-                    if not is_start_added then
-                        temp_segment[current_category]["start"] = chapter.time / duration * 100
-                        temp_segment[current_category]["is_start_added"] = true
-                    end
-                end
-                if string.find(chapter.title, ("end"):gsub("[%[%]]", "%%%1")) then
-                    if temp_segment[current_category]["is_start_added"] then
-                        temp_segment[current_category]["end"] = chapter.time / duration * 100
-                        if state.sponsor_segments ~= 2 then
-                            temp_segment[current_category]["is_start_added"] = nil
-                            -- table.sort(temp_segment[current_category], function(a, b) return a.time < b.time end)
-                            table.insert(state.sponsor_segments[current_category], temp_segment[current_category])
-                        end
-                        temp_segment[current_category] = {}
-                        is_start_added = false
-                    end
-                end
-            end
-        end
-    end
-
-    if not user_opts.add_sponsorblock_chapters then
-        -- remove [SponsorBlock] chapters
-        local updated_chapters = {}
-        for _, chapter in ipairs(temp_chapters) do
-            if not string.find(chapter.title, "%[SponsorBlock%]") then
-                table.insert(updated_chapters, chapter)
-            end
-        end
-        -- updated chapter list
-        state.chapter_list = updated_chapters
-
-        if #updated_chapters > 0 then
-            mp.set_property_native("chapter-list", updated_chapters)
-        end
-    end
-
-    print("Added SponsorBlock segments")
 end
 
 function show_message(text, duration)
@@ -2203,8 +1811,6 @@ function destroyscrollingkeys()
     unbind_keys("DOWN WHEEL_DOWN", "move_down")
     unbind_keys("ENTER MBTN_LEFT", "select")
     unbind_keys("ESC MBTN_RIGHT", "close")
-    unbind_keys("LEFT", "comments_left")
-    unbind_keys("RIGHT", "comments_right")
 end
 
 function check_description()
@@ -2229,18 +1835,6 @@ function check_description()
 end
 
 function show_description(text)
-    if state.is_URL and user_opts.show_youtube_comments then
-        if state.commentsParsed and user_opts.show_youtube_comments then
-            local pageText = "pages"
-            if state.maxCommentPages == 1 then
-                pageText = "page"
-            end
-            state.commentsAdditionalText = '\\N────────────────────\\NPress LEFT/RIGHT to view comments\\N' .. state.maxCommentPages .. ' ' .. pageText .. ' (' .. #state.jsoncomments .. ' comments)'
-            text = text .. state.commentsAdditionalText
-        else
-            text = text .. '\\N────────────────────\\NComments loading...'
-        end
-    end
     text = string.gsub(text, '\n', '\\N')
 
     -- enable scrolling of menu --
@@ -2259,63 +1853,9 @@ function show_description(text)
     end, { repeatable = true })
     bind_keys("ENTER", "select", destroyscrollingkeys)
     bind_keys("ESC", "close", function()
-        if (state.commentsPage > 0) then
-            state.commentsPage = 0
-            state.message_text = state.localDescriptionClick .. state.commentsAdditionalText
-            reset_desc_timer()
-            request_tick()
-            state.scrolledlines = 25
-        else
-            destroyscrollingkeys()
-        end
+        destroyscrollingkeys()
     end) -- close menu using ESC
 
-    local function returnMessageText()
-        local totalCommentCount = #state.jsoncomments
-        local firstCommentCount = (state.commentsPage - 1) * comments_per_page + 1
-        local lastCommentCount = (state.commentsPage) * comments_per_page
-        if lastCommentCount > totalCommentCount then
-            lastCommentCount = totalCommentCount
-        end
-        loadSetOfComments(firstCommentCount)
-        return 'Comments\\NPage ' .. state.commentsPage .. '/' .. state.maxCommentPages .. ' (' .. firstCommentCount .. '/' .. #state.jsoncomments .. ')\\N────────────────────\\N' .. state.commentDescription:gsub('\n', '\\N') ..  '\\N────────────────────\\NEnd of page\\NPage ' .. state.commentsPage .. '/' .. state.maxCommentPages .. ' (' .. lastCommentCount .. '/' .. totalCommentCount .. ')'
-    end
-
-    state.commentsPage = 0
-    if (state.is_URL and user_opts.show_youtube_comments) then
-        bind_keys("LEFT", "comments_left", function()
-            if (state.commentsParsed) then
-                state.commentsPage = state.commentsPage - 1
-                if (state.commentsPage == 0) then
-                    state.message_text = state.localDescriptionClick .. state.commentsAdditionalText
-                elseif (state.commentsPage > 0) then
-                    state.message_text = returnMessageText()
-                else
-                    state.commentsPage = state.maxCommentPages
-                    state.message_text = returnMessageText()
-                end
-                state.scrolledlines = 25
-            end
-            reset_desc_timer()
-            request_tick()
-        end)
-        bind_keys("RIGHT", "comments_right", function()
-            if (state.commentsParsed) then
-                state.commentsPage = state.commentsPage + 1
-                if (state.commentsPage > state.maxCommentPages) then
-                    state.commentsPage = 0
-                    state.message_text = state.localDescriptionClick .. state.commentsAdditionalText
-                else
-                    state.message_text = returnMessageText()
-                end
-                state.scrolledlines = 25
-            end
-            reset_desc_timer()
-            request_tick()
-        end)
-    end
-
-    text = "\\N" .. text
     state.message_text = text
 
     if not state.message_hide_timer then
@@ -2436,10 +1976,10 @@ end
 function window_controls()
     local wc_geo = {
         x = 0,
-        y = 30,
+        y = 40,
         an = 1,
         w = osc_param.playresx,
-        h = 30
+        h = 40
     }
 
     local controlbox_w = window_control_box_width
@@ -2480,7 +2020,7 @@ function window_controls()
     if user_opts.window_controls then
         -- Close: 🗙
         ne = new_element('close', 'button')
-        ne.content = '\238\132\149'
+        ne.content = '\238\151\141'
         ne.eventresponder['mbtn_left_up'] =
             function () mp.commandv('quit') end
         lo = add_layout('close')
@@ -2490,7 +2030,7 @@ function window_controls()
 
         -- Minimize: 🗕
         ne = new_element('minimize', 'button')
-        ne.content = '\238\132\146'
+        ne.content = '\238\164\177'
         ne.eventresponder['mbtn_left_up'] =
             function () mp.commandv('cycle', 'window-minimized') end
         lo = add_layout('minimize')
@@ -2498,13 +2038,9 @@ function window_controls()
         lo.style = osc_styles.window_control
         lo.button.hoverstyle = "{\\c&H" .. osc_color_convert(user_opts.window_controls_minmax_hover) .. "&}"
 
-        -- Maximize: 🗖/🗗
+        -- Maximize: 🗖
         ne = new_element('maximize', 'button')
-        if state.maximized or state.fullscreen then
-            ne.content = '\238\132\148'
-        else
-            ne.content = '\238\132\147'
-        end
+        ne.content = '\238\143\134'
         ne.eventresponder['mbtn_left_up'] =
             function ()
                 if state.fullscreen then
@@ -2527,12 +2063,11 @@ function window_controls()
             -- escape ASS, and strip newlines and trailing slashes
             title = title:gsub("\\n", " "):gsub("\\$", ""):gsub("{","\\{")
             local titleval = not (title == "") and title or "mpv video"
-            if (mp.get_property('ontop') == 'yes') then return "📌 " .. titleval end
-            return titleval
+            return (state.is_live and "LIVE • " or "") .. titleval
         end
         lo = add_layout('window_title')
 
-        local geo = {x = 20, y = button_y + 14, an = 1, w = osc_param.playresx - 150, h = wc_geo.h}
+        local geo = {x = 14, y = button_y + 14, an = 1, w = osc_param.playresx - 150, h = wc_geo.h}
         if user_opts.title_bar_box then
             geo = {x = 10, y = button_y + 10, an = 1, w = osc_param.playresx - 150, h = wc_geo.h}
         end
@@ -2601,7 +2136,7 @@ layouts["original"] = function ()
     -- Seekbar
     new_element('seekbarbg', 'box')
     lo = add_layout('seekbarbg')
-    lo.geometry = {x = refX , y = refY - 100, an = 5, w = osc_geo.w - 50, h = 2}
+    lo.geometry = {x = refX , y = refY - 100, an = 5, w = osc_geo.w - 50, h = 4}
     lo.layer = 13
     lo.style = osc_styles.seekbar_bg
     lo.alpha[1] = 128
@@ -2643,20 +2178,16 @@ layouts["original"] = function ()
     geo = {x = 25, y = refY - 117 + (((state.localDescription ~= nil or state.is_URL) and user_opts.show_description) and -20 or 0), an = 1, w = osc_geo.w - 50, h = 35}
     lo = add_layout("title")
     lo.geometry = geo
-    lo.style = string.format("%s{\\clip(0,%f,%f,%f)}", osc_styles.title,
-                             geo.y - geo.h, geo.x + geo.w, geo.y + geo.h)
+    lo.style = string.format("%s{\\clip(0,%f,%f,%f)}", osc_styles.title, geo.y - geo.h, geo.x + geo.w, geo.y + geo.h)
     lo.alpha[3] = 0
     -- lo.button.maxchars = geo.w / 11
 
     -- Description
     if (state.localDescription ~= nil or state.is_URL) and user_opts.show_description then
-        geo = {x = 25, y = refY - 117, an = 1, w = osc_geo.w - 50, h = 19}
+        geo = {x = 25, y = refY - 115, an = 1, w = 175, h = 19}
         lo = add_layout("description")
         lo.geometry = geo
-
-        lo.style = string.format("%s{\\clip(0,%f,%f,%f)}", osc_styles.description,
-        geo.y - geo.h, geo.x + geo.w, geo.y + geo.h)
-
+        lo.style = osc_styles.description
         lo.alpha[3] = 0
         -- lo.button.maxchars = geo.w / 7
     end
@@ -2666,17 +2197,22 @@ layouts["original"] = function ()
         lo = new_element("volumebarbg", "box")
         lo.visible = (osc_param.playresx >= 900 - outeroffset) and user_opts.volume_control
         lo = add_layout("volumebarbg")
-        lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 2}
+        lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 4}
         lo.layer = 13
         lo.alpha[1] = 128
         lo.style = user_opts.volumebar_match_seek_color and osc_styles.seekbar_bg or osc_styles.volumebar_bg
 
         lo = add_layout("volumebar")
-        lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 8}
+        lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 10}
         lo.style = user_opts.volumebar_match_seek_color and osc_styles.seekbar_fg or osc_styles.volumebar_fg
         lo.slider.gap = 3
         lo.slider.tooltip_style = osc_styles.tooltip
         lo.slider.tooltip_an = 2
+
+        lo = add_layout('volume')
+        lo.geometry = {x = 250, y = refY - 40, an = 4, w = 20, h = 20}
+        lo.style = osc_styles.volume
+        lo.alpha[3] = 0
     end
 
     -- buttons
@@ -2729,23 +2265,22 @@ layouts["original"] = function ()
 
     local show_hours = possec >= 3600 or user_opts.time_format ~= "dynamic"
     lo = add_layout("tc_left")
-    lo.geometry = {x = 25, y = refY - 84, an = 7, w = 35 + (state.tc_ms and 30 or 0) + (show_hours and 20 or 0), h = 20}
+    lo.geometry = {x = 25, y = refY - 85, an = 7, w = 45 + (state.tc_ms and 30 or 0) + (show_hours and 20 or 0), h = 20}
     lo.style = osc_styles.time
+    lo.alpha[3] = 0
 
     local show_remhours = (state.tc_right_rem and remsec >= 3600) or (not state.tc_right_rem and dur >= 3600) or user_opts.time_format ~= "dynamic"
     lo = add_layout("tc_right")
-    lo.geometry = {x = osc_geo.w - 25 , y = refY -84, an = 9, w = 35 + (state.tc_ms and 30 or 0) + (show_remhours and 25 or 0), h = 20}
+    lo.geometry = {x = osc_geo.w - 25 , y = refY - 85, an = 9, w = 45 + (state.tc_ms and 30 or 0) + (show_remhours and 25 or 0), h = 20}
     lo.style = osc_styles.time
+    lo.alpha[3] = 0
 
     -- Chapter Title (next to timestamp)
     if user_opts.show_chapter_title then
-        lo = add_layout("separator")
-        lo.geometry = {x = 65 + (state.tc_ms and 25 or 0) + (show_hours and 16 or 0), y = refY - 84, an = 7, w = 30, h = 20}
-        lo.style = osc_styles.time
-
         lo = add_layout("chapter_title")
-        lo.geometry = {x = 77 + (state.tc_ms and 25 or 0) + (show_hours and 16 or 0), y = refY - 84, an = 7, w = osc_geo.w - 200 - ((show_hours or state.tc_ms) and 60 or 0), h = 20}
+        lo.geometry = {x = osc_geo.w - 25, y = refY - 115, an = 3, w = osc_geo.w - 200 - ((show_hours or state.tc_ms) and 60 or 0), h = 19}
         lo.style = osc_styles.chapter_title
+        lo.alpha[3] = 0
     end
 
     -- Audio/Subtitle
@@ -2767,7 +2302,7 @@ layouts["original"] = function ()
     -- Fullscreen/Loop/Info
     lo = add_layout('tog_fs')
     lo.geometry = {x = osc_geo.w - 37, y = refY - 40, an = 5, w = 24, h = 24}
-    lo.style = osc_styles.control_3
+    lo.style = osc_styles.control_1
     lo.visible = (osc_param.playresx >= 250 - outeroffset)
 
     if ontop_button then
@@ -2844,7 +2379,7 @@ layouts["reduced"] = function ()
         new_element("title_alpha_bg", "box")
         lo = add_layout("title_alpha_bg")
         lo.geometry = {x = posX, y = -100, an = 7, w = osc_w, h = -1}
-        lo.style = osc_styles.box_bg
+        lo.style = osc_styles.title_bar_box_bg
         lo.layer = 10
         lo.alpha[3] = 0
     end
@@ -2854,24 +2389,26 @@ layouts["reduced"] = function ()
     local refY = posY
 
     -- Seekbar
+    local dur_hours = mp.get_property_number("duration", 0) >= 3600
+
     new_element('seekbarbg', 'box')
     lo = add_layout('seekbarbg')
-    lo.geometry = {x = refX , y = refY - 75, an = 5, w = osc_geo.w - 200, h = 2}
+    lo.geometry = {x = refX , y = refY - 75, an = 5, w = osc_geo.w - (state.tc_ms and (dur_hours and 300 or 240) or (dur_hours and 240 or 180)), h = 4}
     lo.layer = 13
     lo.style = osc_styles.seekbar_bg
     lo.alpha[1] = 128
     lo.alpha[3] = 128
 
     lo = add_layout('seekbar')
-    lo.geometry = {x = refX, y = refY - 75, an = 5, w = osc_geo.w - 200, h = 16}
+    lo.geometry = {x = refX, y = refY - 75, an = 5, w = osc_geo.w - (state.tc_ms and (dur_hours and 300 or 240) or (dur_hours and 240 or 180)), h = user_opts.progress_bar_height}
     lo.style = osc_styles.seekbar_fg
     lo.slider.gap = 7
     lo.slider.tooltip_style = osc_styles.tooltip
     lo.slider.tooltip_an = 2
 
-    if (user_opts.persistent_progress or user_opts.persistent_progresstoggle) then
+    if (user_opts.persistent_progress_default or user_opts.persistent_progress_toggle) then
         lo = add_layout('persistentseekbar')
-        lo.geometry = {x = refX, y = refY, an = 5, w = osc_geo.w, h = user_opts.persistent_progressheight}
+        lo.geometry = {x = refX, y = refY, an = 5, w = osc_geo.w, h = user_opts.persistent_progress_height}
         lo.style = osc_styles.seekbar_fg
         lo.slider.gap = 7
         lo.slider.tooltip_an = 0
@@ -2897,18 +2434,16 @@ layouts["reduced"] = function ()
     geo = {x = 25, y = refY - 97, an = 1, w = osc_geo.w - 170, h = 35}
     lo = add_layout("title")
     lo.geometry = geo
-    lo.style = string.format("%s{\\clip(0,%f,%f,%f)}", osc_styles.title,
-                             geo.y - geo.h, geo.x + osc_geo.w - 170, geo.y + geo.h)
+    lo.style = string.format("%s{\\clip(0,%f,%f,%f)}", osc_styles.title, geo.y - geo.h, geo.x + osc_geo.w - 170, geo.y + geo.h)
     lo.alpha[3] = 0
     lo.button.maxchars = geo.w / 5
 
     -- Description
     if (state.localDescription ~= nil or state.is_URL) and user_opts.show_description then
-        geo = {x = osc_geo.w - 25, y = refY - 115, an = 9, w = 120, h = 19}
+        geo = {x = 25, y = refY - 115, an = 7, w = 175, h = 19}
         lo = add_layout("description")
         lo.geometry = geo
-        lo.style = string.format("%s{\\clip(0,%f,%f,%f)}", osc_styles.description,
-        geo.y - geo.h, geo.x + geo.w, geo.y + geo.h)
+        lo.style = osc_styles.description
         lo.alpha[3] = 0
         -- lo.button.maxchars = geo.w / 11
     end
@@ -2918,17 +2453,22 @@ layouts["reduced"] = function ()
         lo = new_element("volumebarbg", "box")
         lo.visible = (osc_param.playresx >= 900 - outeroffset) and user_opts.volume_control
         lo = add_layout("volumebarbg")
-        lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 2}
+        lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 4}
         lo.layer = 13
         lo.alpha[1] = 128
         lo.style = user_opts.volumebar_match_seek_color and osc_styles.seekbar_bg or osc_styles.volumebar_bg
 
         lo = add_layout("volumebar")
-        lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 8}
+        lo.geometry = {x = 155, y = refY - 40, an = 4, w = 80, h = 10}
         lo.style = user_opts.volumebar_match_seek_color and osc_styles.seekbar_fg or osc_styles.volumebar_fg
         lo.slider.gap = 3
         lo.slider.tooltip_style = osc_styles.tooltip
         lo.slider.tooltip_an = 2
+
+        lo = add_layout("volume")
+        lo.geometry = {x = 250, y = refY - 40, an = 4, w = 20, h = 20}
+        lo.style = osc_styles.volume
+        lo.alpha[3] = 0
     end
 
     -- buttons
@@ -2981,19 +2521,22 @@ layouts["reduced"] = function ()
 
     local show_hours = possec >= 3600 or user_opts.time_format ~= "dynamic"
     lo = add_layout("tc_left")
-    lo.geometry = {x = 25, y = refY - 84, an = 7, w = 35 + (state.tc_ms and 30 or 0) + (show_hours and 20 or 0), h = 20}
+    lo.geometry = {x = 25, y = refY - 85, an = 7, w = 45 + (state.tc_ms and 30 or 0) + (show_hours and 20 or 0), h = 20}
     lo.style = osc_styles.time
+    lo.alpha[3] = 0
 
     local show_remhours = (state.tc_right_rem and remsec >= 3600) or (not state.tc_right_rem and dur >= 3600) or user_opts.time_format ~= "dynamic"
     lo = add_layout("tc_right")
-    lo.geometry = {x = osc_geo.w - 25 , y = refY -84, an = 9, w = 35 + (state.tc_ms and 30 or 0) + (show_remhours and 25 or 0), h = 20}
+    lo.geometry = {x = osc_geo.w - 25 , y = refY - 85, an = 9, w = 45 + (state.tc_ms and 30 or 0) + (show_remhours and 25 or 0), h = 20}
     lo.style = osc_styles.time
+    lo.alpha[3] = 0
 
     -- Chapter Title (next to timestamp)
     if user_opts.show_chapter_title then
         lo = add_layout("chapter_title")
-        lo.geometry = {x = 25, y = refY - 125, an = 1, w = 120, h = 19}
+        lo.geometry = {x = osc_geo.w - 25, y = refY - 115, an = 9, w = osc_geo.w - 200 - ((show_hours or state.tc_ms) and 60 or 0), h = 19}
         lo.style = osc_styles.chapter_title
+        lo.alpha[3] = 0
     end
 
     -- Audio/Subtitle
@@ -3015,7 +2558,7 @@ layouts["reduced"] = function ()
     -- Fullscreen/Loop/Info
     lo = add_layout('tog_fs')
     lo.geometry = {x = osc_geo.w - 37, y = refY - 40, an = 5, w = 24, h = 24}
-    lo.style = osc_styles.control_3
+    lo.style = osc_styles.control_1
     lo.visible = (osc_param.playresx >= 250 - outeroffset)
 
     if ontop_button then
@@ -3148,24 +2691,17 @@ local function osc_init()
     ne = new_element('description', 'button')
     ne.visible = (state.localDescription ~= nil or state.is_URL) and user_opts.show_description
     ne.content = function ()
-        if #state.videoDescription > 25 and user_opts.layout_option == "reduced" then
-            return "View description"
-        end
-
         if state.is_URL then
             local title = "Loading description..."
             if state.descriptionLoaded then
-                title = state.videoDescription:sub(1, 300)
-
+                title = "View description"
             end
-            -- get rid of new lines
-            title = string.gsub(title, '\\N', ' ')
             return not (title == "") and title or "error"
         else
             if (state.localDescription == nil) then
                 return ""
             else
-                return string.gsub(state.localDescription, '\\N', ' ')
+                return "View description"
             end
         end
     end
@@ -3461,6 +2997,15 @@ local function osc_init()
             end
         end
     end
+    ne.tooltip_style = osc_styles.tooltip
+    ne.tooltipF = function ()
+		local msg = texts.mute
+        if (state.mute) then
+            msg = texts.unmute
+        end
+        return msg
+    end
+    ne.nothingavailable = ""
     ne.eventresponder['mbtn_left_up'] =
         function ()
             mp.commandv('cycle', 'mute')
@@ -3480,6 +3025,14 @@ local function osc_init()
     ne = new_element('tog_fs', 'button')
     ne.content = function () return state.fullscreen and icons.fullscreen_exit or icons.fullscreen end
     ne.visible = (osc_param.playresx >= 250)
+    ne.tooltip_style = osc_styles.tooltip
+    ne.tooltipF = function ()
+        local msg = texts.fullscreen
+        if (state.fullscreen) then
+            msg = texts.exitfullscreen
+        end
+        return msg
+    end
     ne.eventresponder['mbtn_left_up'] =
         function () mp.commandv('cycle', 'fullscreen') end
 
@@ -3765,6 +3318,11 @@ local function osc_init()
         ne.eventresponder["reset"] = function (element) element.state.lastseek = nil end
         ne.eventresponder["wheel_up_press"] = function () mp.commandv("osd-msg", "add", "volume", 5) end
         ne.eventresponder["wheel_down_press"] = function () mp.commandv("osd-msg", "add", "volume", -5) end
+
+        ne = new_element("volume", "button")
+        ne.content = function ()
+            return tostring(mp.get_property_number('volume'))
+        end
     end
 
     --persistent seekbar
@@ -3853,18 +3411,8 @@ local function osc_init()
         request_init()
     end
 
-    -- Chapter title (below seekbar)
+    -- Chapter title
     local chapter_index = mp.get_property_number("chapter", -1)
-    ne = new_element("separator", "button")
-    ne.visible = true
-    ne.content = function()
-        if chapter_index >= 0 or state.buffering then
-            return " • "
-        else
-            return ""
-        end
-    end
-
     ne = new_element("chapter_title", "button")
     ne.visible = true
     ne.content = function()
@@ -3898,7 +3446,7 @@ local function osc_init()
         local prefix = state.tc_right_rem and
             (user_opts.unicode_minus and UNICODE_MINUS or "-") or ""
 
-        return prefix .. format_time(time_to_display) .. (state.is_live and " • LIVE" or "")
+        return prefix .. format_time(time_to_display)
     end
     ne.eventresponder["mbtn_left_up"] = function()
         state.tc_right_rem = not state.tc_right_rem
@@ -4375,7 +3923,6 @@ mp.observe_property("chapter-list", "native", function(_, list) -- chapter list 
     list = list or {}  -- safety, shouldn't return nil
     table.sort(list, function(a, b) return a.time < b.time end)
     state.chapter_list = list
-    -- make_sponsorblock_segments()
     request_init()
 end)
 mp.observe_property('seeking', nil, function()
@@ -4413,20 +3960,29 @@ if user_opts.key_bindings then
     end);
 
     -- extra key bindings
-    mp.add_key_binding("x", "cycleaudiotracks", function()
-        mp.set_property_number("secondary-sid", 0)
-        set_track("audio", 1)
-        show_message(get_tracklist("audio"))
+    mp.add_key_binding("v", "cyclevideotracks", function()
+        set_track("video", 1) show_message(get_tracklist("video"))
+    end);
+    mp.add_key_binding("V", "cyclevideotracksbackwards", function()
+        set_track("video", -1) show_message(get_tracklist("video"))
+    end);
+    
+    mp.add_key_binding("a", "cycleaudiotracks", function()
+        set_track("audio", 1) show_message(get_tracklist("audio"))
+    end);
+    mp.add_key_binding("A", "cycleaudiotracksbackwards", function()
+        set_track("audio", -1) show_message(get_tracklist("audio"))
     end);
 
-    mp.add_key_binding("c", "cyclecaptions", function()
-        mp.set_property_number("secondary-sid", 0)
-        set_track("sub", 1)
-        show_message(get_tracklist("sub"))
+    mp.add_key_binding("s", "cyclecaptions", function()
+        set_track("sub", 1) show_message(get_tracklist("sub"))
+    end);
+    mp.add_key_binding("S", "cyclecaptionsbackwards", function()
+        set_track("sub", -1) show_message(get_tracklist("sub"))
     end);
 
     if user_opts.persistent_progress_toggle then
-        mp.add_key_binding("b", "persistenttoggle", function()
+        mp.add_key_binding("T", "persistenttoggle", function()
             if user_opts.persistent_progress_toggle then
                 state.persistent_progresstoggle = not state.persistent_progresstoggle
                 tick()
@@ -4453,7 +4009,13 @@ if user_opts.key_bindings then
         end
     end);
 
-    mp.add_key_binding(nil, 'show_osc', function() show_osc() end)
+    mp.add_key_binding("esc", 'toggle_osc', function()
+        if (state.osc_visible == false) then
+            show_osc()
+            return
+        end
+        hide_osc()
+    end)
 end
 
 mp.observe_property('fullscreen', 'bool',
@@ -4585,8 +4147,6 @@ mp.register_script_message("thumbfast-info", function(json)
         thumbfast = data
     end
 end)
-
-mp.register_script_message("sponsorblock-done", make_sponsorblock_segments)
 
 set_virt_mouse_area(0, 0, 0, 0, 'input')
 set_virt_mouse_area(0, 0, 0, 0, 'window-controls')
